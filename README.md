@@ -1,6 +1,33 @@
 # CloakNet VPN
 
-A professional VPN service platform with subscription management, user authentication, and Stripe payment integration.
+A professional VPN service platform with subscription management, user authentication, Stripe payment integration, and VPN provisioning service.
+
+## Architecture Overview
+
+CloakNet is designed as a unified system that runs on a single server with the following logical components:
+
+- **Web Frontend**: Next.js application serving the public website and user dashboard
+- **Backend API**: Handles authentication, subscription management, and VPN provisioning
+- **Database**: SQLite (development) / PostgreSQL (production) for user and subscription data
+- **VPN Provisioning Service**: Internal service that manages activation keys and VPN peer configuration
+- **VPN Server**: WireGuard-based VPN server (Germany location)
+
+All components run on the same machine but are logically separated and communicate via internal API calls.
+
+### Activation Key System
+
+An Activation Key is a unique identifier that:
+- Represents one active VPN access
+- Is tied to one CloakNet account
+- Remains valid as long as the subscription is active
+- Can be revoked centrally at any time
+
+**Lifecycle:**
+1. Subscription becomes active via Stripe payment
+2. Backend calls provisioning service to generate an Activation Key
+3. Key is stored in the database and displayed in the user's dashboard
+4. Desktop client uses the key to establish VPN connection
+5. When subscription expires, the key is automatically revoked
 
 ## Features
 
@@ -33,8 +60,83 @@ A professional VPN service platform with subscription management, user authentic
 
 ### Future Phases
 
-- **Phase 2**: VPN server infrastructure & key provisioning
-- **Phase 3**: Desktop client applications (Windows, macOS)
+- **Phase 2**: VPN server infrastructure & key provisioning ✅ (Complete)
+- **Phase 3**: Desktop client applications (Windows, macOS) ✅ (Complete)
+
+### VPN Server Setup
+
+The WireGuard VPN server runs on the same machine as the website. Setup scripts are in `server/vpn/`:
+
+```bash
+# Initial setup (run once as root)
+cd server/vpn
+sudo ./setup.sh
+
+# Manage peers
+sudo ./scripts/peer-manager.sh add <user_id>
+sudo ./scripts/peer-manager.sh list
+sudo ./scripts/peer-manager.sh remove <user_id>
+```
+
+### Desktop VPN Client
+
+Cross-platform Electron app in `desktop-client/`:
+
+```bash
+cd desktop-client
+npm install
+npm start          # Development
+npm run build      # Build for all platforms
+npm run build:win  # Windows only
+npm run build:mac  # macOS only
+```
+
+Features:
+- Activation key login
+- WireGuard VPN tunnel
+- System tray with status
+- Auto-reconnect
+
+### VPN Provisioning Service
+
+The internal provisioning service provides the following functions:
+
+- `createKey(userId)`: Generate a new activation key for a user
+- `validateKey(key)`: Validate if a key is active and has a valid subscription
+- `revokeKey(key)`: Deactivate/revoke an activation key
+- `revokeKeyByUserId(userId)`: Revoke key for a specific user
+- `getVpnConfig(userId)`: Get VPN connection configuration
+
+### Desktop Client API
+
+Endpoint for desktop VPN client to validate activation keys:
+
+```
+POST /api/vpn/validate
+Content-Type: application/json
+
+{
+  "key": "CLOAK-XXXX-XXXX-XXXX-XXXX"
+}
+
+Response (valid):
+{
+  "valid": true,
+  "config": {
+    "server": "vpn.cloaknet.de",
+    "port": 51820,
+    "protocol": "wireguard",
+    "location": "Germany",
+    "serverPublicKey": "..."
+  }
+}
+
+Response (invalid):
+{
+  "valid": false,
+  "error": "Key has been revoked"
+}
+```
 
 ## Tech Stack
 
@@ -131,32 +233,35 @@ model ActivationKey {
 ## Project Structure
 
 ```
-src/
-├── app/
-│   ├── (auth)/
-│   │   ├── login/
-│   │   └── register/
-│   ├── (public)/
-│   │   ├── faq/
-│   │   ├── pricing/
-│   │   ├── privacy/
-│   │   └── terms/
-│   ├── api/
-│   │   ├── auth/
-│   │   └── stripe/
-│   ├── dashboard/
-│   ├── layout.tsx
-│   └── page.tsx
-├── components/
-│   ├── Footer.tsx
-│   ├── Header.tsx
-│   └── Providers.tsx
-├── lib/
-│   ├── auth.ts
-│   ├── prisma.ts
-│   └── stripe.ts
-└── types/
-    └── next-auth.d.ts
+├── src/                          # Next.js web application
+│   ├── app/
+│   │   ├── (auth)/
+│   │   ├── (public)/
+│   │   ├── api/
+│   │   │   ├── auth/
+│   │   │   ├── stripe/
+│   │   │   └── vpn/validate/    # Desktop client API
+│   │   └── dashboard/
+│   ├── components/
+│   ├── lib/
+│   │   ├── auth.ts
+│   │   ├── prisma.ts
+│   │   ├── provisioning.ts      # VPN provisioning service
+│   │   └── stripe.ts
+│   └── types/
+├── desktop-client/               # Electron VPN client
+│   ├── src/
+│   │   ├── main.js              # Main process
+│   │   ├── preload.js           # IPC bridge
+│   │   └── index.html           # UI
+│   ├── assets/                   # App icons
+│   └── wireguard/               # WireGuard binaries (Windows)
+├── server/vpn/                   # VPN server setup
+│   ├── setup.sh                  # Initial server setup
+│   ├── scripts/
+│   │   └── peer-manager.sh      # Peer management
+│   └── README.md
+└── prisma/                       # Database schema
 ```
 
 ## License

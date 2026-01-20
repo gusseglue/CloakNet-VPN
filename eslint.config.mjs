@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Desktop client (separate Electron project)
+    "desktop-client/**",
+    // Server scripts
+    "server/**",
   ]),
 ]);
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { stripe } from '@/lib/stripe';
 import prisma from '@/lib/prisma';
+import { createKey, revokeKeyByUserId } from '@/lib/provisioning';
 import Stripe from 'stripe';
 
 export async function POST(req: Request) {
@@ -32,19 +33,36 @@ export async function POST(req: Request) {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
         const subscriptionId = session.subscription as string;
+        const customerId = session.customer as string;
 
         if (userId && subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-          await prisma.subscription.update({
+          // Use upsert to handle cases where subscription record might not exist
+          await prisma.subscription.upsert({
             where: { userId },
-            data: {
+            update: {
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscriptionId,
+              status: 'active',
+              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              cancelAtPeriodEnd: false,
+            },
+            create: {
+              userId,
+              stripeCustomerId: customerId,
               stripeSubscriptionId: subscriptionId,
               status: 'active',
               currentPeriodEnd: new Date(subscription.current_period_end * 1000),
               cancelAtPeriodEnd: false,
             },
           });
+
+          // Generate activation key via provisioning service
+          const activationKey = await createKey(userId);
+          if (!activationKey) {
+            console.error(`Failed to create activation key for user ${userId}`);
+          }
         }
         break;
       }
@@ -92,12 +110,8 @@ export async function POST(req: Request) {
             },
           });
 
-          // Revoke activation key when subscription expires (upsert handles edge cases)
-          await prisma.activationKey.upsert({
-            where: { userId: dbSubscription.userId },
-            update: { revokedAt: new Date() },
-            create: { userId: dbSubscription.userId, key: null, revokedAt: new Date() },
-          });
+          // Revoke activation key via provisioning service
+          await revokeKeyByUserId(dbSubscription.userId);
         }
         break;
       }
