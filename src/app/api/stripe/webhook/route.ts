@@ -33,13 +33,24 @@ export async function POST(req: Request) {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
         const subscriptionId = session.subscription as string;
+        const customerId = session.customer as string;
 
         if (userId && subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-          await prisma.subscription.update({
+          // Use upsert to handle cases where subscription record might not exist
+          await prisma.subscription.upsert({
             where: { userId },
-            data: {
+            update: {
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscriptionId,
+              status: 'active',
+              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              cancelAtPeriodEnd: false,
+            },
+            create: {
+              userId,
+              stripeCustomerId: customerId,
               stripeSubscriptionId: subscriptionId,
               status: 'active',
               currentPeriodEnd: new Date(subscription.current_period_end * 1000),
