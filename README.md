@@ -1,6 +1,33 @@
 # CloakNet VPN
 
-A professional VPN service platform with subscription management, user authentication, and Stripe payment integration.
+A professional VPN service platform with subscription management, user authentication, Stripe payment integration, and VPN provisioning service.
+
+## Architecture Overview
+
+CloakNet is designed as a unified system that runs on a single server with the following logical components:
+
+- **Web Frontend**: Next.js application serving the public website and user dashboard
+- **Backend API**: Handles authentication, subscription management, and VPN provisioning
+- **Database**: SQLite (development) / PostgreSQL (production) for user and subscription data
+- **VPN Provisioning Service**: Internal service that manages activation keys and VPN peer configuration
+- **VPN Server**: WireGuard-based VPN server (Germany location)
+
+All components run on the same machine but are logically separated and communicate via internal API calls.
+
+### Activation Key System
+
+An Activation Key is a unique identifier that:
+- Represents one active VPN access
+- Is tied to one CloakNet account
+- Remains valid as long as the subscription is active
+- Can be revoked centrally at any time
+
+**Lifecycle:**
+1. Subscription becomes active via Stripe payment
+2. Backend calls provisioning service to generate an Activation Key
+3. Key is stored in the database and displayed in the user's dashboard
+4. Desktop client uses the key to establish VPN connection
+5. When subscription expires, the key is automatically revoked
 
 ## Features
 
@@ -33,8 +60,48 @@ A professional VPN service platform with subscription management, user authentic
 
 ### Future Phases
 
-- **Phase 2**: VPN server infrastructure & key provisioning
+- **Phase 2**: VPN server infrastructure & key provisioning ✅ (Backend complete)
 - **Phase 3**: Desktop client applications (Windows, macOS)
+
+### VPN Provisioning Service
+
+The internal provisioning service provides the following functions:
+
+- `createKey(userId)`: Generate a new activation key for a user
+- `validateKey(key)`: Validate if a key is active and has a valid subscription
+- `revokeKey(key)`: Deactivate/revoke an activation key
+- `revokeKeyByUserId(userId)`: Revoke key for a specific user
+- `getVpnConfig(userId)`: Get VPN connection configuration
+
+### Desktop Client API
+
+Endpoint for desktop VPN client to validate activation keys:
+
+```
+POST /api/vpn/validate
+Content-Type: application/json
+
+{
+  "key": "CLOAK-XXXX-XXXX-XXXX-XXXX"
+}
+
+Response (valid):
+{
+  "valid": true,
+  "config": {
+    "server": "vpn.cloaknet.de",
+    "port": 51820,
+    "protocol": "wireguard",
+    "location": "Germany"
+  }
+}
+
+Response (invalid):
+{
+  "valid": false,
+  "error": "Key has been revoked"
+}
+```
 
 ## Tech Stack
 
@@ -143,7 +210,9 @@ src/
 │   │   └── terms/
 │   ├── api/
 │   │   ├── auth/
-│   │   └── stripe/
+│   │   ├── stripe/
+│   │   └── vpn/
+│   │       └── validate/    # Desktop client key validation endpoint
 │   ├── dashboard/
 │   ├── layout.tsx
 │   └── page.tsx
@@ -154,6 +223,7 @@ src/
 ├── lib/
 │   ├── auth.ts
 │   ├── prisma.ts
+│   ├── provisioning.ts     # VPN provisioning service
 │   └── stripe.ts
 └── types/
     └── next-auth.d.ts

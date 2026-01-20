@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { stripe } from '@/lib/stripe';
 import prisma from '@/lib/prisma';
+import { createKey, revokeKeyByUserId } from '@/lib/provisioning';
 import Stripe from 'stripe';
 
 export async function POST(req: Request) {
@@ -45,6 +46,12 @@ export async function POST(req: Request) {
               cancelAtPeriodEnd: false,
             },
           });
+
+          // Generate activation key via provisioning service
+          const activationKey = await createKey(userId);
+          if (!activationKey) {
+            console.error(`Failed to create activation key for user ${userId}`);
+          }
         }
         break;
       }
@@ -92,12 +99,8 @@ export async function POST(req: Request) {
             },
           });
 
-          // Revoke activation key when subscription expires (upsert handles edge cases)
-          await prisma.activationKey.upsert({
-            where: { userId: dbSubscription.userId },
-            update: { revokedAt: new Date() },
-            create: { userId: dbSubscription.userId, key: null, revokedAt: new Date() },
-          });
+          // Revoke activation key via provisioning service
+          await revokeKeyByUserId(dbSubscription.userId);
         }
         break;
       }
