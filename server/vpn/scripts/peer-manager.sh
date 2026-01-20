@@ -8,29 +8,29 @@ CONFIG_DIR="/etc/wireguard"
 WG_INTERFACE="wg0"
 PEERS_DIR="${CONFIG_DIR}/peers"
 
+# Colors - define these first before use
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
 # Create peers directory if it doesn't exist
 mkdir -p ${PEERS_DIR}
 
 # Check if WireGuard is installed
-if ! command -v wg &> /dev/null; then
+if ! command -v wg > /dev/null 2>&1; then
   echo -e "${RED}Error: WireGuard is not installed. Run setup.sh first.${NC}"
   exit 1
 fi
 
 # Check if WireGuard interface exists (for list command)
 check_interface() {
-  if ! wg show ${WG_INTERFACE} &> /dev/null; then
+  if ! wg show ${WG_INTERFACE} > /dev/null 2>&1; then
     echo -e "${RED}Error: WireGuard interface ${WG_INTERFACE} is not running.${NC}"
-    echo -e "${YELLOW}Try: sudo systemctl start wg-quick@${WG_INTERFACE}${NC}"
+    echo -e "${YELLOW}Try: systemctl start wg-quick@${WG_INTERFACE}${NC}"
     exit 1
   fi
 }
-
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
 
 # Get next available IP
 get_next_ip() {
@@ -41,8 +41,8 @@ get_next_ip() {
     local exists=false
     
     # Check if IP is already assigned
-    for peer_file in ${PEERS_DIR}/*.conf 2>/dev/null; do
-      if [ -f "$peer_file" ] && grep -q "Address = ${ip}" "$peer_file"; then
+    for peer_file in "${PEERS_DIR}"/*.conf; do
+      if [ -f "$peer_file" ] && grep -q "Address = ${ip}" "$peer_file" 2>/dev/null; then
         exists=true
         break
       fi
@@ -201,9 +201,9 @@ list_peers() {
     
     # Find peer ID from files
     local peer_id="unknown"
-    for peer_file in ${PEERS_DIR}/*.conf 2>/dev/null; do
+    for peer_file in "${PEERS_DIR}"/*.conf; do
       if [ -f "$peer_file" ]; then
-        local file_private=$(grep "PrivateKey" "$peer_file" | cut -d'=' -f2 | tr -d ' ')
+        local file_private=$(grep "PrivateKey" "$peer_file" 2>/dev/null | cut -d'=' -f2 | tr -d ' ')
         local file_public=$(echo "$file_private" | wg pubkey 2>/dev/null)
         if [ "$file_public" = "$public_key" ]; then
           peer_id=$(basename "$peer_file" .conf)
