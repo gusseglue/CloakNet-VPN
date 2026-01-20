@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  subscription   Subscription?
+  activationKey  ActivationKey?
+}
+
+model Subscription {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  status                String   @default("inactive") // active, canceled, past_due, expired, inactive
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ActivationKey {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  key       String?   // Can be null in Phase 1
+  issuedAt  DateTime?
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
