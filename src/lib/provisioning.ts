@@ -44,11 +44,11 @@ export async function createKey(userId: string): Promise<string | null> {
     
     // Ensure uniqueness (very unlikely to collide, but be safe)
     while (attempts < maxAttempts) {
-      const existing = await prisma.activationKey.findFirst({
+      const existingCount = await prisma.activationKey.count({
         where: { key },
       });
       
-      if (!existing) break;
+      if (existingCount === 0) break;
       
       key = generateActivationKey();
       attempts++;
@@ -190,7 +190,13 @@ export async function revokeKeyByUserId(userId: string): Promise<boolean> {
       where: { userId },
     });
     
-    if (!activationKey || !activationKey.key) {
+    // No activation key record exists for this user
+    if (!activationKey) {
+      return false;
+    }
+    
+    // Key is null or already inactive - nothing to revoke, but not an error
+    if (!activationKey.key) {
       return false;
     }
     

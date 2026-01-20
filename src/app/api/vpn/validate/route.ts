@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     // Validate the activation key
     const result = await validateKey(key);
 
-    if (!result.valid) {
+    if (!result.valid || !result.userId) {
       return NextResponse.json(
         { 
           valid: false, 
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     }
 
     // Key is valid - return VPN configuration
-    const vpnConfig = getVpnConfig(result.userId!);
+    const vpnConfig = getVpnConfig(result.userId);
 
     return NextResponse.json({
       valid: true,
