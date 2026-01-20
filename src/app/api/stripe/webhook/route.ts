@@ -92,10 +92,11 @@ export async function POST(req: Request) {
             },
           });
 
-          // Revoke activation key when subscription expires
-          await prisma.activationKey.update({
+          // Revoke activation key when subscription expires (upsert handles edge cases)
+          await prisma.activationKey.upsert({
             where: { userId: dbSubscription.userId },
-            data: { revokedAt: new Date() },
+            update: { revokedAt: new Date() },
+            create: { userId: dbSubscription.userId, key: null, revokedAt: new Date() },
           });
         }
         break;

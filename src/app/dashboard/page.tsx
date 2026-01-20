@@ -59,9 +59,7 @@ export default async function DashboardPage() {
   }
 
   // Get activation key if active access
-  const activationKey = hasActiveAccess && user.activationKey?.key
-    ? user.activationKey.key
-    : null;
+  const activationKey = hasActiveAccess ? user.activationKey?.key ?? null : null;
 
   return (
     <DashboardClient

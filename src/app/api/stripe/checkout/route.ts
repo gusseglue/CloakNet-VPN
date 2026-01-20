@@ -43,10 +43,11 @@ export async function POST(req: Request) {
       });
       customerId = customer.id;
 
-      // Update subscription with customer ID
-      await prisma.subscription.update({
+      // Upsert subscription with customer ID (handles edge cases where subscription might not exist)
+      await prisma.subscription.upsert({
         where: { userId: user.id },
-        data: { stripeCustomerId: customerId },
+        update: { stripeCustomerId: customerId },
+        create: { userId: user.id, stripeCustomerId: customerId, status: 'inactive' },
       });
     }
 
