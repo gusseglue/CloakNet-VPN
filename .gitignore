@@ -49,3 +49,8 @@ next-env.d.ts
 /src/generated/prisma
 /prisma/*.db
 /prisma/*.db-journal
+
+# desktop client
+/desktop-client/node_modules
+/desktop-client/dist
+/desktop-client/wireguard/*.exe

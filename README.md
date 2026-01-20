@@ -60,8 +60,42 @@ An Activation Key is a unique identifier that:
 
 ### Future Phases
 
-- **Phase 2**: VPN server infrastructure & key provisioning ✅ (Backend complete)
-- **Phase 3**: Desktop client applications (Windows, macOS)
+- **Phase 2**: VPN server infrastructure & key provisioning ✅ (Complete)
+- **Phase 3**: Desktop client applications (Windows, macOS) ✅ (Complete)
+
+### VPN Server Setup
+
+The WireGuard VPN server runs on the same machine as the website. Setup scripts are in `server/vpn/`:
+
+```bash
+# Initial setup (run once as root)
+cd server/vpn
+sudo ./setup.sh
+
+# Manage peers
+sudo ./scripts/peer-manager.sh add <user_id>
+sudo ./scripts/peer-manager.sh list
+sudo ./scripts/peer-manager.sh remove <user_id>
+```
+
+### Desktop VPN Client
+
+Cross-platform Electron app in `desktop-client/`:
+
+```bash
+cd desktop-client
+npm install
+npm start          # Development
+npm run build      # Build for all platforms
+npm run build:win  # Windows only
+npm run build:mac  # macOS only
+```
+
+Features:
+- Activation key login
+- WireGuard VPN tunnel
+- System tray with status
+- Auto-reconnect
 
 ### VPN Provisioning Service
 
@@ -92,7 +126,8 @@ Response (valid):
     "server": "vpn.cloaknet.de",
     "port": 51820,
     "protocol": "wireguard",
-    "location": "Germany"
+    "location": "Germany",
+    "serverPublicKey": "..."
   }
 }
 
@@ -198,35 +233,35 @@ model ActivationKey {
 ## Project Structure
 
 ```
-src/
-├── app/
-│   ├── (auth)/
-│   │   ├── login/
-│   │   └── register/
-│   ├── (public)/
-│   │   ├── faq/
-│   │   ├── pricing/
-│   │   ├── privacy/
-│   │   └── terms/
-│   ├── api/
-│   │   ├── auth/
-│   │   ├── stripe/
-│   │   └── vpn/
-│   │       └── validate/    # Desktop client key validation endpoint
-│   ├── dashboard/
-│   ├── layout.tsx
-│   └── page.tsx
-├── components/
-│   ├── Footer.tsx
-│   ├── Header.tsx
-│   └── Providers.tsx
-├── lib/
-│   ├── auth.ts
-│   ├── prisma.ts
-│   ├── provisioning.ts     # VPN provisioning service
-│   └── stripe.ts
-└── types/
-    └── next-auth.d.ts
+├── src/                          # Next.js web application
+│   ├── app/
+│   │   ├── (auth)/
+│   │   ├── (public)/
+│   │   ├── api/
+│   │   │   ├── auth/
+│   │   │   ├── stripe/
+│   │   │   └── vpn/validate/    # Desktop client API
+│   │   └── dashboard/
+│   ├── components/
+│   ├── lib/
+│   │   ├── auth.ts
+│   │   ├── prisma.ts
+│   │   ├── provisioning.ts      # VPN provisioning service
+│   │   └── stripe.ts
+│   └── types/
+├── desktop-client/               # Electron VPN client
+│   ├── src/
+│   │   ├── main.js              # Main process
+│   │   ├── preload.js           # IPC bridge
+│   │   └── index.html           # UI
+│   ├── assets/                   # App icons
+│   └── wireguard/               # WireGuard binaries (Windows)
+├── server/vpn/                   # VPN server setup
+│   ├── setup.sh                  # Initial server setup
+│   ├── scripts/
+│   │   └── peer-manager.sh      # Peer management
+│   └── README.md
+└── prisma/                       # Database schema
 ```
 
 ## License

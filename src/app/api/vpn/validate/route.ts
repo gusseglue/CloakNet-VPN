@@ -37,11 +37,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Key is valid - return VPN configuration
+    // Key is valid - return VPN configuration and userId for IP assignment
     const vpnConfig = getVpnConfig(result.userId);
 
     return NextResponse.json({
       valid: true,
+      userId: result.userId,
       config: vpnConfig,
     });
   } catch (error) {

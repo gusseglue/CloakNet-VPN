@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <title>CloakNet VPN</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #fff;
+      min-height: 100vh;
+      user-select: none;
+    }
+
+    /* Custom title bar */
+    .titlebar {
+      height: 32px;
+      background: rgba(15, 23, 42, 0.95);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 12px;
+      -webkit-app-region: drag;
+    }
+
+    .titlebar-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #10b981;
+    }
+
+    .titlebar-buttons {
+      display: flex;
+      gap: 8px;
+      -webkit-app-region: no-drag;
+    }
+
+    .titlebar-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .titlebar-btn:hover {
+      opacity: 0.8;
+    }
+
+    .btn-minimize { background: #fbbf24; }
+    .btn-close { background: #ef4444; }
+
+    /* Main content */
+    .container {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: calc(100vh - 32px);
+    }
+
+    /* Logo */
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    /* Connection status */
+    .status-container {
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .status-indicator {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      transition: all 0.3s ease;
+    }
+
+    .status-indicator.disconnected {
+      background: rgba(239, 68, 68, 0.1);
+      border: 3px solid #ef4444;
+    }
+
+    .status-indicator.connecting {
+      background: rgba(251, 191, 36, 0.1);
+      border: 3px solid #fbbf24;
+      animation: pulse 1.5s infinite;
+    }
+
+    .status-indicator.connected {
+      background: rgba(16, 185, 129, 0.1);
+      border: 3px solid #10b981;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+    }
+
+    .status-text {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .status-subtext {
+      color: #94a3b8;
+      font-size: 13px;
+    }
+
+    /* Input */
+    .input-group {
+      width: 100%;
+      max-width: 320px;
+      margin-bottom: 16px;
+    }
+
+    .input-label {
+      display: block;
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+
+    .input {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 14px;
+      font-family: 'Monaco', 'Consolas', monospace;
+      text-align: center;
+      letter-spacing: 1px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input:focus {
+      border-color: #10b981;
+    }
+
+    .input::placeholder {
+      color: #64748b;
+      letter-spacing: normal;
+    }
+
+    /* Buttons */
+    .btn {
+      width: 100%;
+      max-width: 320px;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 12px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: #fff;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(51, 65, 85, 0.5);
+      color: #94a3b8;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(51, 65, 85, 0.8);
+      color: #fff;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Error message */
+    .error {
+      width: 100%;
+      max-width: 320px;
+      padding: 12px 16px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid #ef4444;
+      border-radius: 8px;
+      color: #ef4444;
+      font-size: 13px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    /* Server info */
+    .server-info {
+      width: 100%;
+      max-width: 320px;
+      padding: 16px;
+      background: rgba(30, 41, 59, 0.5);
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+
+    .server-info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+    }
+
+    .server-info-row:last-child {
+      border-bottom: none;
+    }
+
+    .server-info-label {
+      color: #94a3b8;
+      font-size: 13px;
+    }
+
+    .server-info-value {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: auto;
+      text-align: center;
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    .footer a {
+      color: #10b981;
+      text-decoration: none;
+    }
+
+    /* Hidden */
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="titlebar">
+    <span class="titlebar-title">CloakNet VPN</span>
+    <div class="titlebar-buttons">
+      <button class="titlebar-btn btn-minimize" onclick="window.electron.minimize()"></button>
+      <button class="titlebar-btn btn-close" onclick="window.electron.close()"></button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="logo">🛡️</div>
+    <h1>CloakNet VPN</h1>
+    <p class="subtitle">Sikker forbindelse til Tyskland</p>
+
+    <!-- Status indicator -->
+    <div class="status-container">
+      <div id="status-indicator" class="status-indicator disconnected">
+        <span id="status-icon">🔒</span>
+      </div>
+      <p id="status-text" class="status-text">Ikke forbundet</p>
+      <p id="status-subtext" class="status-subtext">Indtast din aktiveringsnøgle</p>
+    </div>
+
+    <!-- Error message -->
+    <div id="error" class="error hidden"></div>
+
+    <!-- Login view -->
+    <div id="login-view">
+      <div class="input-group">
+        <label class="input-label">Aktiveringsnøgle</label>
+        <input 
+          type="text" 
+          id="activation-key" 
+          class="input" 
+          placeholder="CLOAK-XXXX-XXXX-XXXX-XXXX"
+          autocomplete="off"
+          spellcheck="false"
+        >
+      </div>
+      <button id="connect-btn" class="btn btn-primary">Forbind</button>
+    </div>
+
+    <!-- Connected view -->
+    <div id="connected-view" class="hidden">
+      <div class="server-info">
+        <div class="server-info-row">
+          <span class="server-info-label">Server</span>
+          <span class="server-info-value" id="server-name">vpn.cloaknet.de</span>
+        </div>
+        <div class="server-info-row">
+          <span class="server-info-label">Lokation</span>
+          <span class="server-info-value">🇩🇪 Tyskland</span>
+        </div>
+        <div class="server-info-row">
+          <span class="server-info-label">Protokol</span>
+          <span class="server-info-value">WireGuard</span>
+        </div>
+      </div>
+      <button id="disconnect-btn" class="btn btn-danger">Afbryd forbindelse</button>
+      <button id="logout-btn" class="btn btn-secondary">Log ud</button>
+    </div>
+
+    <div class="footer">
+      <p>© 2024 CloakNet • <a href="https://cloaknet.de" target="_blank">cloaknet.de</a></p>
+    </div>
+  </div>
+
+  <script>
+    // Elements
+    const statusIndicator = document.getElementById('status-indicator');
+    const statusIcon = document.getElementById('status-icon');
+    const statusText = document.getElementById('status-text');
+    const statusSubtext = document.getElementById('status-subtext');
+    const errorDiv = document.getElementById('error');
+    const loginView = document.getElementById('login-view');
+    const connectedView = document.getElementById('connected-view');
+    const activationKeyInput = document.getElementById('activation-key');
+    const connectBtn = document.getElementById('connect-btn');
+    const disconnectBtn = document.getElementById('disconnect-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const serverName = document.getElementById('server-name');
+
+    // State
+    let isConnecting = false;
+
+    // Initialize
+    async function init() {
+      const status = await window.electron.getStatus();
+      
+      if (status.connected) {
+        showConnectedState();
+      } else if (status.savedKey) {
+        activationKeyInput.value = status.savedKey;
+      }
+    }
+
+    // Show error
+    function showError(message) {
+      errorDiv.textContent = message;
+      errorDiv.classList.remove('hidden');
+      setTimeout(() => {
+        errorDiv.classList.add('hidden');
+      }, 5000);
+    }
+
+    // Hide error
+    function hideError() {
+      errorDiv.classList.add('hidden');
+    }
+
+    // Update UI state
+    function showConnectingState() {
+      statusIndicator.className = 'status-indicator connecting';
+      statusIcon.textContent = '⏳';
+      statusText.textContent = 'Forbinder...';
+      statusSubtext.textContent = 'Etablerer sikker forbindelse';
+      connectBtn.disabled = true;
+      connectBtn.textContent = 'Forbinder...';
+    }
+
+    function showConnectedState() {
+      statusIndicator.className = 'status-indicator connected';
+      statusIcon.textContent = '✅';
+      statusText.textContent = 'Forbundet';
+      statusSubtext.textContent = 'Din trafik er krypteret';
+      loginView.classList.add('hidden');
+      connectedView.classList.remove('hidden');
+      connectBtn.disabled = false;
+      connectBtn.textContent = 'Forbind';
+    }
+
+    function showDisconnectedState() {
+      statusIndicator.className = 'status-indicator disconnected';
+      statusIcon.textContent = '🔒';
+      statusText.textContent = 'Ikke forbundet';
+      statusSubtext.textContent = 'Indtast din aktiveringsnøgle';
+      loginView.classList.remove('hidden');
+      connectedView.classList.add('hidden');
+      connectBtn.disabled = false;
+      connectBtn.textContent = 'Forbind';
+    }
+
+    // Connect
+    async function connect() {
+      if (isConnecting) return;
+      
+      const key = activationKeyInput.value.trim().toUpperCase();
+      
+      if (!key) {
+        showError('Indtast venligst din aktiveringsnøgle');
+        return;
+      }
+
+      isConnecting = true;
+      hideError();
+      showConnectingState();
+
+      try {
+        const result = await window.electron.connect(key);
+        
+        if (result.success) {
+          showConnectedState();
+        } else {
+          showError(result.error || 'Kunne ikke forbinde');
+          showDisconnectedState();
+        }
+      } catch (error) {
+        showError(error.message || 'Der opstod en fejl');
+        showDisconnectedState();
+      } finally {
+        isConnecting = false;
+      }
+    }
+
+    // Disconnect
+    async function disconnect() {
+      disconnectBtn.disabled = true;
+      disconnectBtn.textContent = 'Afbryder...';
+
+      try {
+        await window.electron.disconnect();
+        showDisconnectedState();
+      } catch (error) {
+        showError(error.message || 'Kunne ikke afbryde');
+      } finally {
+        disconnectBtn.disabled = false;
+        disconnectBtn.textContent = 'Afbryd forbindelse';
+      }
+    }
+
+    // Logout
+    async function logout() {
+      await window.electron.disconnect();
+      await window.electron.clearSavedKey();
+      activationKeyInput.value = '';
+      showDisconnectedState();
+    }
+
+    // Event listeners
+    connectBtn.addEventListener('click', connect);
+    disconnectBtn.addEventListener('click', disconnect);
+    logoutBtn.addEventListener('click', logout);
+
+    activationKeyInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        connect();
+      }
+    });
+
+    // Format key as user types
+    activationKeyInput.addEventListener('input', (e) => {
+      let value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+      
+      // Auto-format: CLOAK-XXXX-XXXX-XXXX-XXXX
+      if (value.startsWith('CLOAK') && value.length > 5 && !value.includes('-')) {
+        value = 'CLOAK-' + value.substring(5);
+      }
+      
+      e.target.value = value;
+    });
+
+    // Listen for connect request from tray
+    window.electron.onRequestConnect(() => {
+      if (!connectedView.classList.contains('hidden')) return;
+      connect();
+    });
+
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>

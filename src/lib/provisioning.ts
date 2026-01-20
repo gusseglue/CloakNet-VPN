@@ -215,20 +215,22 @@ export async function revokeKeyByUserId(userId: string): Promise<boolean> {
 
 /**
  * Get VPN connection configuration for a validated key
- * In production, this would return actual WireGuard/OpenVPN config
+ * Returns WireGuard configuration for the desktop client
  */
 export function getVpnConfig(_userId: string): {
   server: string;
   port: number;
   protocol: string;
   location: string;
+  serverPublicKey: string;
 } {
-  // Static configuration for the Germany server
-  // In production, this would be dynamically generated based on VPN server type
+  // WireGuard server configuration
+  // The server public key is generated during VPN server setup
   return {
     server: process.env.VPN_SERVER_HOST || 'vpn.cloaknet.de',
     port: parseInt(process.env.VPN_SERVER_PORT || '51820', 10),
     protocol: process.env.VPN_PROTOCOL || 'wireguard',
     location: 'Germany',
+    serverPublicKey: process.env.WG_SERVER_PUBLIC_KEY || '',
   };
 }
