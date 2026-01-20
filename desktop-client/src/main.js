@@ -434,7 +434,18 @@ ipcMain.on('minimize', () => {
 });
 
 ipcMain.on('close', () => {
-  mainWindow.hide();
+  // On Windows, actually quit the app instead of hiding to tray
+  // since tray icon support can be problematic
+  if (process.platform === 'win32') {
+    app.isQuitting = true;
+    if (isConnected) {
+      disconnectVPN().then(() => app.quit());
+    } else {
+      app.quit();
+    }
+  } else {
+    mainWindow.hide();
+  }
 });
 
 // App lifecycle - only start if we got the lock

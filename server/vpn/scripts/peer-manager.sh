@@ -11,6 +11,21 @@ PEERS_DIR="${CONFIG_DIR}/peers"
 # Create peers directory if it doesn't exist
 mkdir -p ${PEERS_DIR}
 
+# Check if WireGuard is installed
+if ! command -v wg &> /dev/null; then
+  echo -e "${RED}Error: WireGuard is not installed. Run setup.sh first.${NC}"
+  exit 1
+fi
+
+# Check if WireGuard interface exists (for list command)
+check_interface() {
+  if ! wg show ${WG_INTERFACE} &> /dev/null; then
+    echo -e "${RED}Error: WireGuard interface ${WG_INTERFACE} is not running.${NC}"
+    echo -e "${YELLOW}Try: sudo systemctl start wg-quick@${WG_INTERFACE}${NC}"
+    exit 1
+  fi
+}
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -55,6 +70,8 @@ add_peer() {
     exit 1
   fi
   
+  check_interface
+  
   local peer_file="${PEERS_DIR}/${peer_id}.conf"
   
   if [ -f "$peer_file" ]; then
@@ -75,8 +92,19 @@ add_peer() {
   fi
   
   # Get server info
+  if [ ! -f "${CONFIG_DIR}/keys/server_public.key" ]; then
+    echo -e "${RED}Error: Server public key not found. Run setup.sh first.${NC}"
+    exit 1
+  fi
+  
+  if [ ! -f "${CONFIG_DIR}/server-info.json" ]; then
+    echo -e "${RED}Error: Server info not found. Run setup.sh first.${NC}"
+    exit 1
+  fi
+  
   local server_public_key=$(cat ${CONFIG_DIR}/keys/server_public.key)
-  local server_endpoint=$(cat ${CONFIG_DIR}/server-info.json | grep -o '"endpoint": "[^"]*"' | cut -d'"' -f4)
+  # More compatible JSON parsing
+  local server_endpoint=$(sed -n 's/.*"endpoint"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' ${CONFIG_DIR}/server-info.json)
   
   # Create peer config
   cat > "$peer_file" << EOF
@@ -134,6 +162,8 @@ remove_peer() {
     exit 1
   fi
   
+  check_interface
+  
   local peer_file="${PEERS_DIR}/${peer_id}.conf"
   
   if [ ! -f "$peer_file" ]; then
@@ -159,6 +189,8 @@ remove_peer() {
 
 # List all peers
 list_peers() {
+  check_interface
+  
   echo -e "${GREEN}Active Peers:${NC}"
   echo ""
   
