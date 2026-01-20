@@ -4,9 +4,11 @@
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
 !include "WinVer.nsh"
+!include "x64.nsh"
 
 ; Variables
 Var WireGuardInstalled
+Var WireGuardMsi
 
 ; Macro to check if WireGuard is installed
 !macro CheckWireGuard
@@ -35,9 +37,23 @@ Var WireGuardInstalled
     ; WireGuard not found, install it
     DetailPrint "Installing WireGuard..."
     
+    ; Detect architecture and select appropriate MSI
+    ${If} ${RunningX64}
+      StrCpy $WireGuardMsi "wireguard-amd64.msi"
+    ${Else}
+      StrCpy $WireGuardMsi "wireguard-x86.msi"
+    ${EndIf}
+    
     ; Extract WireGuard MSI to temp
     SetOutPath "$TEMP\CloakNetInstall"
-    File /oname=wireguard-installer.msi "${BUILD_RESOURCES_DIR}\wireguard\wireguard-amd64.msi"
+    
+    ; Try to extract the architecture-specific MSI, fall back to amd64 if x86 not found
+    ClearErrors
+    File /nonfatal /oname=wireguard-installer.msi "${BUILD_RESOURCES_DIR}\wireguard\$WireGuardMsi"
+    ${If} ${Errors}
+      ; Fall back to amd64 if specific MSI not found
+      File /nonfatal /oname=wireguard-installer.msi "${BUILD_RESOURCES_DIR}\wireguard\wireguard-amd64.msi"
+    ${EndIf}
     
     ; Install WireGuard silently
     DetailPrint "Running WireGuard installer..."
@@ -49,9 +65,18 @@ Var WireGuardInstalled
       ; Don't fail - user might have it installed elsewhere
     ${EndIf}
     
-    ; Clean up
+    ; Clean up with error handling
+    ClearErrors
     Delete "$TEMP\CloakNetInstall\wireguard-installer.msi"
+    ${If} ${Errors}
+      DetailPrint "Note: Could not delete temporary installer file"
+    ${EndIf}
+    
+    ClearErrors
     RMDir "$TEMP\CloakNetInstall"
+    ${If} ${Errors}
+      DetailPrint "Note: Could not remove temporary directory"
+    ${EndIf}
     
     DetailPrint "WireGuard installation complete"
   ${Else}

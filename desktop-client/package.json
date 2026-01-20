@@ -46,10 +46,7 @@
       "shortcutName": "CloakNet VPN",
       "include": "installer/installer.nsh",
       "warningsAsErrors": false,
-      "installerLanguages": ["en_US", "da_DK", "de_DE"],
-      "language": 1033,
-      "differentialPackage": true,
-      "displayLanguageSelector": true
+      "differentialPackage": true
     },
     "mac": {
       "target": "dmg",
