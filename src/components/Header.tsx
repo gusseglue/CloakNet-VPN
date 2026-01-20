@@ -19,7 +19,7 @@ export default function Header() {
               href="/pricing"
               className="text-slate-300 hover:text-white transition-colors"
             >
-              Pricing
+              Priser
             </Link>
             <Link
               href="/faq"
@@ -36,13 +36,13 @@ export default function Header() {
                   href="/dashboard"
                   className="text-slate-300 hover:text-white transition-colors"
                 >
-                  Dashboard
+                  Kontrolpanel
                 </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
                   className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
                 >
-                  Logout
+                  Log ud
                 </button>
               </div>
             ) : (
@@ -51,13 +51,13 @@ export default function Header() {
                   href="/login"
                   className="text-slate-300 hover:text-white transition-colors"
                 >
-                  Login
+                  Log ind
                 </Link>
                 <Link
                   href="/register"
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
                 >
-                  Get Started
+                  Kom i gang
                 </Link>
               </div>
             )}
@@ -69,7 +69,7 @@ export default function Header() {
               href={session ? '/dashboard' : '/login'}
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors text-sm"
             >
-              {session ? 'Dashboard' : 'Login'}
+              {session ? 'Kontrolpanel' : 'Log ind'}
             </Link>
           </div>
         </div>

@@ -25,13 +25,13 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError('Invalid email or password');
+        setError('Ugyldig email eller adgangskode');
       } else {
         router.push('/dashboard');
         router.refresh();
       }
     } catch {
-      setError('An error occurred. Please try again.');
+      setError('Der opstod en fejl. Prøv venligst igen.');
     } finally {
       setLoading(false);
     }
@@ -41,9 +41,9 @@ export default function LoginPage() {
     <div className="min-h-[calc(100vh-200px)] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h1 className="text-2xl font-bold text-center mb-2">Welcome Back</h1>
+          <h1 className="text-2xl font-bold text-center mb-2">Velkommen tilbage</h1>
           <p className="text-slate-400 text-center mb-8">
-            Log in to access your CloakNet dashboard
+            Log ind for at få adgang til dit CloakNet kontrolpanel
           </p>
 
           {error && (
@@ -58,7 +58,7 @@ export default function LoginPage() {
                 htmlFor="email"
                 className="block text-sm font-medium text-slate-300 mb-2"
               >
-                Email Address
+                Email-adresse
               </label>
               <input
                 id="email"
@@ -67,7 +67,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                placeholder="you@example.com"
+                placeholder="dig@eksempel.dk"
               />
             </div>
 
@@ -76,7 +76,7 @@ export default function LoginPage() {
                 htmlFor="password"
                 className="block text-sm font-medium text-slate-300 mb-2"
               >
-                Password
+                Adgangskode
               </label>
               <input
                 id="password"
@@ -94,18 +94,18 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-3 px-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Logging in...' : 'Log In'}
+              {loading ? 'Logger ind...' : 'Log ind'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-slate-400">
-              Don&apos;t have an account?{' '}
+              Har du ikke en konto?{' '}
               <Link
                 href="/register"
                 className="text-emerald-500 hover:text-emerald-400 font-medium"
               >
-                Sign up
+                Opret konto
               </Link>
             </p>
           </div>

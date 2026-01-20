@@ -10,20 +10,20 @@ export default function Footer() {
               <span className="text-emerald-500">Cloak</span>Net
             </Link>
             <p className="mt-4 text-slate-400 max-w-md">
-              Secure, fast, and reliable VPN service. Protect your privacy and
-              bypass network restrictions with military-grade encryption.
+              Sikker, hurtig og pålidelig VPN-tjeneste. Beskyt dit privatliv og
+              omgå netværksrestriktioner med stærk kryptering.
             </p>
           </div>
 
           <div>
-            <h3 className="text-white font-semibold mb-4">Product</h3>
+            <h3 className="text-white font-semibold mb-4">Produkt</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="/pricing"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
-                  Pricing
+                  Priser
                 </Link>
               </li>
               <li>
@@ -39,21 +39,21 @@ export default function Footer() {
                   href="/dashboard"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
-                  Dashboard
+                  Kontrolpanel
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <h3 className="text-white font-semibold mb-4">Legal</h3>
+            <h3 className="text-white font-semibold mb-4">Juridisk</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="/terms"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
-                  Terms of Service
+                  Servicevilkår
                 </Link>
               </li>
               <li>
@@ -61,7 +61,7 @@ export default function Footer() {
                   href="/privacy"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
-                  Privacy Policy
+                  Privatlivspolitik
                 </Link>
               </li>
             </ul>
@@ -70,7 +70,7 @@ export default function Footer() {
 
         <div className="mt-8 pt-8 border-t border-slate-800">
           <p className="text-slate-400 text-sm text-center">
-            © {new Date().getFullYear()} CloakNet. All rights reserved.
+            © {new Date().getFullYear()} CloakNet. Alle rettigheder forbeholdes.
           </p>
         </div>
       </div>

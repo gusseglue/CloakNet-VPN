@@ -3,72 +3,72 @@ export default function FAQPage() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div className="text-center mb-16">
         <h1 className="text-4xl font-bold mb-4">
-          Frequently Asked <span className="text-emerald-500">Questions</span>
+          Ofte stillede <span className="text-emerald-500">spørgsmål</span>
         </h1>
         <p className="text-lg text-slate-400">
-          Everything you need to know about CloakNet VPN
+          Alt hvad du behøver at vide om CloakNet VPN
         </p>
       </div>
 
       <div className="space-y-6">
         <FAQItem
-          question="What is a VPN and how does it work?"
-          answer="A VPN (Virtual Private Network) creates a secure, encrypted tunnel between your device and the internet. When you connect to CloakNet, your internet traffic is routed through our servers, masking your real IP address and encrypting all data. This means your ISP, network administrators, and potential hackers cannot see what you're doing online."
+          question="Hvad er en VPN, og hvordan virker det?"
+          answer="En VPN (Virtual Private Network) skaber en sikker, krypteret tunnel mellem din enhed og internettet. Når du forbinder til CloakNet, bliver din internettrafik dirigeret gennem vores servere, hvilket skjuler din rigtige IP-adresse og krypterer alle data. Det betyder, at din internetudbyder, netværksadministratorer og potentielle hackere ikke kan se, hvad du laver online."
         />
 
         <FAQItem
-          question="Is CloakNet safe to use?"
-          answer="CloakNet uses AES-256 encryption, the same standard used by governments and military organizations worldwide. This encryption is virtually unbreakable with current technology. Your data is protected from the moment it leaves your device until it reaches its destination."
+          question="Er CloakNet sikkert at bruge?"
+          answer="CloakNet bruger AES-256 kryptering, den samme standard som bruges af regeringer og organisationer verden over. Denne kryptering er praktisk talt umulig at bryde med nuværende teknologi. Dine data er beskyttet fra det øjeblik, de forlader din enhed, til de når deres destination."
         />
 
         <FAQItem
-          question="Can I use CloakNet at school or work?"
-          answer="CloakNet can help you access content that may be restricted on certain networks. Our tunneling technology is designed to work in most network environments. However, please ensure your use complies with your institution's acceptable use policies."
+          question="Kan jeg bruge CloakNet i skolen eller på arbejde?"
+          answer="CloakNet kan hjælpe dig med at få adgang til indhold, der kan være begrænset på visse netværk. Vores tunneling-teknologi er designet til at fungere i de fleste netværksmiljøer. Vær dog opmærksom på at din brug overholder din institutions accepterede brugsregler."
         />
 
         <FAQItem
-          question="Will CloakNet slow down my internet?"
-          answer="Our advanced tunneling protocols are optimized for speed. While there's always some overhead with encryption, most users experience minimal speed reduction. CloakNet is designed to maintain high performance for streaming, gaming, and browsing."
+          question="Vil CloakNet gøre mit internet langsommere?"
+          answer="Vores avancerede tunneling-protokoller er optimeret til hastighed. Selvom der altid er noget overhead med kryptering, oplever de fleste brugere minimal hastighedsreduktion. CloakNet er designet til at opretholde høj ydeevne til streaming, gaming og browsing."
         />
 
         <FAQItem
-          question="What's the difference between weekly and monthly plans?"
-          answer="Both plans offer the same full access to CloakNet VPN. The weekly plan is great for short-term needs, while the monthly plan saves you about 25% compared to paying weekly. You can cancel either subscription at any time, and your access continues until the end of the current billing period."
+          question="Hvad er forskellen mellem ugentlige og månedlige abonnementer?"
+          answer="Begge abonnementer giver samme fulde adgang til CloakNet VPN. Det ugentlige abonnement er godt til kortvarige behov, mens det månedlige abonnement sparer dig penge. Du kan opsige begge abonnementer når som helst, og din adgang fortsætter indtil slutningen af den aktuelle faktureringsperiode."
         />
 
         <FAQItem
-          question="How does IP masking protect my privacy?"
-          answer="When you connect to CloakNet, websites and services see our server's IP address instead of yours. This prevents websites from tracking your location, stops advertisers from building profiles on you, and helps protect your identity online."
+          question="Hvordan beskytter IP-maskering mit privatliv?"
+          answer="Når du forbinder til CloakNet, ser hjemmesider og tjenester vores servers IP-adresse i stedet for din. Dette forhindrer hjemmesider i at spore din placering, stopper annoncører fra at opbygge profiler om dig, og hjælper med at beskytte din identitet online."
         />
 
         <FAQItem
-          question="Can I cancel my subscription?"
-          answer="Yes, you can cancel your subscription at any time from your dashboard. When you cancel, your access remains active until the end of your current billing period. After that, your subscription will not renew, and access will end. No refunds are provided for partial periods."
+          question="Kan jeg opsige mit abonnement?"
+          answer="Ja, du kan opsige dit abonnement når som helst fra dit kontrolpanel. Når du opsiger, forbliver din adgang aktiv indtil slutningen af din aktuelle faktureringsperiode. Derefter fornyes dit abonnement ikke, og adgangen ophører. Der gives ingen refusion for delvise perioder."
         />
 
         <FAQItem
-          question="What devices can I use CloakNet on?"
-          answer="CloakNet is currently developing a desktop client that will support Windows and macOS. Mobile apps are planned for future releases. Your subscription includes access across all supported platforms."
+          question="Hvilke enheder kan jeg bruge CloakNet på?"
+          answer="CloakNet udvikler i øjeblikket en desktop-klient, der vil understøtte Windows og macOS. Mobilapps er planlagt til fremtidige udgivelser. Dit abonnement inkluderer adgang på alle understøttede platforme."
         />
 
         <FAQItem
-          question="Is there a free trial?"
-          answer="We currently do not offer a free trial. However, our weekly plan lets you try CloakNet at a low commitment level. We believe our service quality speaks for itself."
+          question="Er der en gratis prøveperiode?"
+          answer="Vi tilbyder i øjeblikket ikke en gratis prøveperiode. Dog lader vores ugentlige abonnement dig prøve CloakNet til en lav pris. Vi mener, at vores servicekvalitet taler for sig selv."
         />
 
         <FAQItem
-          question="How do I get my Activation Key?"
-          answer="After subscribing, you can find your Activation Key in your account dashboard. This key is used to authenticate your CloakNet client application. Keep it secure and do not share it with others."
+          question="Hvordan får jeg min aktiveringsnøgle?"
+          answer="Efter tilmelding kan du finde din aktiveringsnøgle i dit kontrolpanel. Denne nøgle bruges til at autentificere din CloakNet-klientapplikation. Hold den sikker og del den ikke med andre."
         />
       </div>
 
       <div className="mt-16 p-8 bg-slate-800/50 border border-slate-700 rounded-xl text-center">
-        <h2 className="text-2xl font-bold mb-4">Still have questions?</h2>
+        <h2 className="text-2xl font-bold mb-4">Har du stadig spørgsmål?</h2>
         <p className="text-slate-400 mb-6">
-          Our support team is here to help you get started with CloakNet.
+          Vores supportteam er her for at hjælpe dig i gang med CloakNet.
         </p>
         <p className="text-emerald-500">
-          Contact us at support@cloaknet.example.com
+          Kontakt os på support@cloaknet.example.com
         </p>
       </div>
     </div>

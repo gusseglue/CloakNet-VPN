@@ -18,12 +18,12 @@ export default function RegisterPage() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Adgangskoderne matcher ikke');
       return;
     }
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError('Adgangskoden skal være mindst 8 tegn');
       return;
     }
 
@@ -39,7 +39,7 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Registration failed');
+        setError(data.error || 'Registrering mislykkedes');
         return;
       }
 
@@ -58,7 +58,7 @@ export default function RegisterPage() {
         router.refresh();
       }
     } catch {
-      setError('An error occurred. Please try again.');
+      setError('Der opstod en fejl. Prøv venligst igen.');
     } finally {
       setLoading(false);
     }
@@ -68,9 +68,9 @@ export default function RegisterPage() {
     <div className="min-h-[calc(100vh-200px)] flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-          <h1 className="text-2xl font-bold text-center mb-2">Create Account</h1>
+          <h1 className="text-2xl font-bold text-center mb-2">Opret konto</h1>
           <p className="text-slate-400 text-center mb-8">
-            Join CloakNet and secure your online privacy
+            Tilmeld dig CloakNet og beskyt dit privatliv online
           </p>
 
           {error && (
@@ -85,7 +85,7 @@ export default function RegisterPage() {
                 htmlFor="email"
                 className="block text-sm font-medium text-slate-300 mb-2"
               >
-                Email Address
+                Email-adresse
               </label>
               <input
                 id="email"
@@ -94,7 +94,7 @@ export default function RegisterPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                placeholder="you@example.com"
+                placeholder="dig@eksempel.dk"
               />
             </div>
 
@@ -103,7 +103,7 @@ export default function RegisterPage() {
                 htmlFor="password"
                 className="block text-sm font-medium text-slate-300 mb-2"
               >
-                Password
+                Adgangskode
               </label>
               <input
                 id="password"
@@ -116,7 +116,7 @@ export default function RegisterPage() {
                 placeholder="••••••••"
               />
               <p className="mt-1 text-xs text-slate-500">
-                Minimum 8 characters
+                Minimum 8 tegn
               </p>
             </div>
 
@@ -125,7 +125,7 @@ export default function RegisterPage() {
                 htmlFor="confirmPassword"
                 className="block text-sm font-medium text-slate-300 mb-2"
               >
-                Confirm Password
+                Bekræft adgangskode
               </label>
               <input
                 id="confirmPassword"
@@ -140,13 +140,13 @@ export default function RegisterPage() {
             </div>
 
             <div className="text-sm text-slate-400">
-              By creating an account, you agree to our{' '}
+              Ved at oprette en konto accepterer du vores{' '}
               <Link href="/terms" className="text-emerald-500 hover:text-emerald-400">
-                Terms of Service
+                Servicevilkår
               </Link>{' '}
-              and{' '}
+              og{' '}
               <Link href="/privacy" className="text-emerald-500 hover:text-emerald-400">
-                Privacy Policy
+                Privatlivspolitik
               </Link>
               .
             </div>
@@ -156,18 +156,18 @@ export default function RegisterPage() {
               disabled={loading}
               className="w-full py-3 px-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? 'Opretter konto...' : 'Opret konto'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-slate-400">
-              Already have an account?{' '}
+              Har du allerede en konto?{' '}
               <Link
                 href="/login"
                 className="text-emerald-500 hover:text-emerald-400 font-medium"
               >
-                Log in
+                Log ind
               </Link>
             </p>
           </div>

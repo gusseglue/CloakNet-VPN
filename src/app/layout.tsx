@@ -5,8 +5,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "CloakNet VPN - Secure Your Privacy",
-  description: "Professional VPN service with military-grade encryption. Bypass network restrictions and protect your online privacy.",
+  title: "CloakNet VPN - Beskyt dit privatliv",
+  description: "Professionel VPN-tjeneste med sikker kryptering. Omgå netværksrestriktioner og beskyt dit privatliv online.",
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="da">
       <body className="antialiased bg-slate-950 text-white min-h-screen flex flex-col">
         <Providers>
           <Header />
