@@ -4,6 +4,8 @@ import bcrypt from 'bcryptjs';
 import prisma from './prisma';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Trust the host in production (required for NextAuth.js v5 behind reverse proxies)
+  trustHost: true,
   providers: [
     Credentials({
       name: 'credentials',
