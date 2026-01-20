@@ -9,25 +9,23 @@ Electron-based desktop VPN client for CloakNet VPN service.
 - System tray with connection status
 - Auto-reconnect on startup
 - Cross-platform (Windows, macOS, Linux)
+- **Automatic WireGuard installation** - No manual setup required!
 
-## Prerequisites
+## Installation
 
-### Windows
-- Download WireGuard from https://www.wireguard.com/install/
-- The `wg.exe` and `wireguard.exe` tools will be bundled with the app
+Simply download and run the installer for your platform. The installer will:
+1. Install CloakNet VPN
+2. Automatically install WireGuard if not already present
+3. Create desktop and start menu shortcuts
 
-### macOS
-```bash
-brew install wireguard-tools
-```
-
-### Linux
-```bash
-sudo apt install wireguard-tools  # Debian/Ubuntu
-sudo dnf install wireguard-tools  # Fedora
-```
+That's it! Just enter your activation key and connect.
 
 ## Development
+
+### Prerequisites
+
+Before building, ensure you have the WireGuard binaries in the `wireguard/` folder.
+See `wireguard/README.md` for details.
 
 ### Install dependencies
 ```bash
@@ -68,18 +66,20 @@ desktop-client/
 │   ├── main.js       # Main Electron process
 │   ├── preload.js    # Preload script for IPC
 │   └── index.html    # UI
-├── assets/           # App icons
+├── assets/           # App icons and installer assets
+├── installer/        # NSIS installer customization scripts
 ├── wireguard/        # WireGuard binaries (Windows)
 └── package.json      # Dependencies and build config
 ```
 
 ## How It Works
 
-1. User enters activation key
-2. Key is validated against the backend API (`/api/vpn/validate`)
-3. If valid, WireGuard keys are generated locally
-4. WireGuard configuration is created with server details
-5. VPN tunnel is established using `wg-quick`
+1. User installs the app (WireGuard is installed automatically)
+2. User enters activation key
+3. Key is validated against the backend API (`/api/vpn/validate`)
+4. If valid, WireGuard keys are generated locally
+5. WireGuard configuration is created with server details
+6. VPN tunnel is established using WireGuard
 
 ## Security
 

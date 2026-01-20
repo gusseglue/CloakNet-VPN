@@ -1,0 +1,42 @@
+CloakNet VPN License Agreement
+
+Copyright © 2024 CloakNet. All rights reserved.
+
+PLEASE READ THIS LICENSE AGREEMENT CAREFULLY BEFORE USING THE SOFTWARE.
+
+1. LICENSE GRANT
+CloakNet grants you a non-exclusive, non-transferable license to use this 
+software in accordance with the terms of your subscription.
+
+2. RESTRICTIONS
+You may not:
+- Modify, reverse engineer, or decompile the software
+- Distribute or share your activation key with others
+- Use the software for illegal activities
+- Resell or sublicense the software
+
+3. PRIVACY
+CloakNet VPN is designed to protect your privacy. We do not log your 
+browsing activity. For more details, see our privacy policy at:
+https://cloaknet.de/privacy
+
+4. THIRD-PARTY SOFTWARE
+This software includes WireGuard® which is licensed under the GNU General 
+Public License version 2. WireGuard is a registered trademark of Jason A. 
+Donenfeld.
+
+5. DISCLAIMER
+THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+
+6. LIMITATION OF LIABILITY
+IN NO EVENT SHALL CLOAKNET BE LIABLE FOR ANY INDIRECT, INCIDENTAL, 
+SPECIAL, OR CONSEQUENTIAL DAMAGES.
+
+7. TERMINATION
+This license is effective until terminated. Your rights under this license 
+will terminate automatically if you fail to comply with any of its terms.
+
+By installing and using CloakNet VPN, you agree to these terms.
+
+Contact: support@cloaknet.de
+Website: https://cloaknet.de
