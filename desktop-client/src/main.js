@@ -240,9 +240,20 @@ function generateWireGuardKeys() {
   return new Promise((resolve, reject) => {
     const wgPath = getWireGuardPath();
     
+    // Check if WireGuard exists before trying to run it
+    if (!fs.existsSync(wgPath)) {
+      reject(new Error('WireGuard er ikke installeret. Installer venligst WireGuard fra https://www.wireguard.com/install/ og prøv igen.'));
+      return;
+    }
+    
     exec(`"${wgPath}" genkey`, (error, privateKey) => {
       if (error) {
-        reject(error);
+        // Provide a more helpful error message
+        if (error.code === 'ENOENT' || (error.message && (error.message.includes('ENOENT') || error.message.includes('not recognized')))) {
+          reject(new Error('WireGuard blev ikke fundet. Installer venligst WireGuard fra https://www.wireguard.com/install/ og prøv igen.'));
+        } else {
+          reject(error);
+        }
         return;
       }
       
@@ -267,8 +278,34 @@ function getWireGuardPath() {
   const platform = process.platform;
   
   if (platform === 'win32') {
-    return path.join(process.resourcesPath, 'wireguard', 'wg.exe');
+    // Check standard Windows installation paths for WireGuard
+    const possiblePaths = [
+      'C:\\Program Files\\WireGuard\\wg.exe',
+      'C:\\Program Files (x86)\\WireGuard\\wg.exe',
+      path.join(process.resourcesPath, 'wireguard', 'wg.exe')
+    ];
+    
+    for (const wgPath of possiblePaths) {
+      if (fs.existsSync(wgPath)) {
+        return wgPath;
+      }
+    }
+    
+    // Return default path even if not found (will error when executed)
+    return possiblePaths[0];
   } else if (platform === 'darwin') {
+    // Check common macOS paths
+    const possiblePaths = [
+      '/usr/local/bin/wg',
+      '/opt/homebrew/bin/wg',
+      '/usr/bin/wg'
+    ];
+    
+    for (const wgPath of possiblePaths) {
+      if (fs.existsSync(wgPath)) {
+        return wgPath;
+      }
+    }
     return '/usr/local/bin/wg';
   } else {
     return '/usr/bin/wg';
@@ -279,8 +316,34 @@ function getWireGuardQuickPath() {
   const platform = process.platform;
   
   if (platform === 'win32') {
-    return path.join(process.resourcesPath, 'wireguard', 'wireguard.exe');
+    // Check standard Windows installation paths for WireGuard
+    const possiblePaths = [
+      'C:\\Program Files\\WireGuard\\wireguard.exe',
+      'C:\\Program Files (x86)\\WireGuard\\wireguard.exe',
+      path.join(process.resourcesPath, 'wireguard', 'wireguard.exe')
+    ];
+    
+    for (const wgPath of possiblePaths) {
+      if (fs.existsSync(wgPath)) {
+        return wgPath;
+      }
+    }
+    
+    // Return default path even if not found (will error when executed)
+    return possiblePaths[0];
   } else if (platform === 'darwin') {
+    // Check common macOS paths
+    const possiblePaths = [
+      '/usr/local/bin/wg-quick',
+      '/opt/homebrew/bin/wg-quick',
+      '/usr/bin/wg-quick'
+    ];
+    
+    for (const wgPath of possiblePaths) {
+      if (fs.existsSync(wgPath)) {
+        return wgPath;
+      }
+    }
     return '/usr/local/bin/wg-quick';
   } else {
     return '/usr/bin/wg-quick';
