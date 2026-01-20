@@ -9,6 +9,24 @@ const sudo = require('sudo-prompt');
 
 const store = new Store();
 
+// Single instance lock - prevent multiple instances
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  // Another instance is already running, quit this one
+  app.quit();
+} else {
+  // This is the first instance
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, focus our window instead
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
+
 let mainWindow;
 let tray;
 let vpnProcess = null;
@@ -44,10 +62,37 @@ function createWindow() {
 }
 
 function createTray() {
+  // Try to load custom icon, fall back to empty icon if not found
+  let icon;
   const iconPath = path.join(__dirname, '../assets/tray-icon.png');
-  const icon = nativeImage.createFromPath(iconPath);
   
-  tray = new Tray(icon.resize({ width: 16, height: 16 }));
+  try {
+    if (fs.existsSync(iconPath)) {
+      icon = nativeImage.createFromPath(iconPath);
+      icon = icon.resize({ width: 16, height: 16 });
+    } else {
+      // Create a simple colored icon as fallback
+      icon = nativeImage.createEmpty();
+    }
+  } catch (error) {
+    icon = nativeImage.createEmpty();
+  }
+  
+  // On Windows, if icon is empty, create a simple one
+  if (icon.isEmpty() && process.platform === 'win32') {
+    // Create a small green square as fallback
+    const size = 16;
+    const buffer = Buffer.alloc(size * size * 4);
+    for (let i = 0; i < size * size; i++) {
+      buffer[i * 4] = 16;      // R
+      buffer[i * 4 + 1] = 185; // G (green)
+      buffer[i * 4 + 2] = 129; // B
+      buffer[i * 4 + 3] = 255; // A
+    }
+    icon = nativeImage.createFromBuffer(buffer, { width: size, height: size });
+  }
+  
+  tray = new Tray(icon);
   
   updateTrayMenu();
   
@@ -392,28 +437,34 @@ ipcMain.on('close', () => {
   mainWindow.hide();
 });
 
-// App lifecycle
-app.whenReady().then(() => {
-  createWindow();
-  createTray();
-  
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    } else {
-      mainWindow.show();
+// App lifecycle - only start if we got the lock
+if (gotTheLock) {
+  app.whenReady().then(() => {
+    createWindow();
+    createTray();
+    
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      } else {
+        mainWindow.show();
+      }
+    });
+  });
+
+  app.on('window-all-closed', () => {
+    // On Windows and Linux, don't quit when window is hidden to tray
+    // The app should keep running in the system tray
+    if (process.platform === 'darwin') {
+      // On macOS, apps typically stay running even without windows
+    }
+    // Don't call app.quit() - let the app run in tray
+  });
+
+  app.on('before-quit', async () => {
+    app.isQuitting = true;
+    if (isConnected) {
+      await disconnectVPN();
     }
   });
-});
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-
-app.on('before-quit', async () => {
-  if (isConnected) {
-    await disconnectVPN();
-  }
-});
+}
