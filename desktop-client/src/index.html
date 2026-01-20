@@ -301,8 +301,8 @@
   <div class="titlebar">
     <span class="titlebar-title">CloakNet VPN</span>
     <div class="titlebar-buttons">
-      <button class="titlebar-btn btn-minimize" onclick="window.electron.minimize()"></button>
-      <button class="titlebar-btn btn-close" onclick="window.electron.close()"></button>
+      <button class="titlebar-btn btn-minimize" id="btn-minimize"></button>
+      <button class="titlebar-btn btn-close" id="btn-close"></button>
     </div>
   </div>
 
@@ -522,6 +522,18 @@
     window.electron.onRequestConnect(() => {
       if (!connectedView.classList.contains('hidden')) return;
       connect();
+    });
+
+    // Window control buttons
+    const btnMinimize = document.getElementById('btn-minimize');
+    const btnClose = document.getElementById('btn-close');
+    
+    btnMinimize.addEventListener('click', () => {
+      window.electron.minimize();
+    });
+    
+    btnClose.addEventListener('click', () => {
+      window.electron.close();
     });
 
     // Initialize on load
