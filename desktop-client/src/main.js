@@ -212,11 +212,11 @@ function generateWireGuardConfig(serverConfig, privateKey, publicKey, userId) {
   const serverPublicKey = serverConfig.serverPublicKey || process.env.WG_SERVER_PUBLIC_KEY || '';
   
   if (!serverPublicKey) {
-    throw new Error('Server public key not configured');
+    throw new Error('VPN-serveren er ikke konfigureret endnu. Kontakt support for hjælp.');
   }
   
   if (!isValidWireGuardKey(serverPublicKey)) {
-    throw new Error('Invalid server public key format');
+    throw new Error('VPN-serveren returnerede en ugyldig konfiguration. Kontakt support for hjælp.');
   }
   
   // Generate consistent client IP from user ID

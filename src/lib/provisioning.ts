@@ -225,12 +225,18 @@ export function getVpnConfig(_userId: string): {
   serverPublicKey: string;
 } {
   // WireGuard server configuration
-  // The server public key is generated during VPN server setup
+  // The server public key MUST be generated during VPN server setup
+  const serverPublicKey = process.env.WG_SERVER_PUBLIC_KEY;
+  
+  if (!serverPublicKey) {
+    console.error('WG_SERVER_PUBLIC_KEY environment variable is not set!');
+  }
+  
   return {
     server: process.env.VPN_SERVER_HOST || 'vpn.cloaknet.de',
     port: parseInt(process.env.VPN_SERVER_PORT || '51820', 10),
     protocol: process.env.VPN_PROTOCOL || 'wireguard',
     location: 'Germany',
-    serverPublicKey: process.env.WG_SERVER_PUBLIC_KEY || '',
+    serverPublicKey: serverPublicKey || '',
   };
 }

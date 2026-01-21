@@ -10,11 +10,11 @@
 ; Variables
 Var WireGuardInstalled
 Var WireGuardExe
-Var DownloadResult
 
 ; WireGuard download URL - official download from wireguard.com
 !define WIREGUARD_URL "https://download.wireguard.com/windows-client/wireguard-installer.exe"
 !define WIREGUARD_INSTALLER "$TEMP\wireguard-installer.exe"
+!define DOWNLOAD_SCRIPT "$TEMP\download_wireguard.ps1"
 
 ; Macro to check if WireGuard is installed
 !macro CheckWireGuard
@@ -56,43 +56,54 @@ Var DownloadResult
     ; WireGuard not found, download and install it
     DetailPrint "WireGuard is not installed. Downloading..."
     
-    ; Use PowerShell to download WireGuard (works on all modern Windows)
-    DetailPrint "Downloading WireGuard from official source..."
-    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri \"${WIREGUARD_URL}\" -OutFile \"${WIREGUARD_INSTALLER}\" -UseBasicParsing; exit 0 } catch { exit 1 }"'
-    Pop $DownloadResult
+    ; Create PowerShell download script
+    FileOpen $0 "${DOWNLOAD_SCRIPT}" w
+    FileWrite $0 "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12$\r$\n"
+    FileWrite $0 "try {$\r$\n"
+    FileWrite $0 "    Invoke-WebRequest -Uri '${WIREGUARD_URL}' -OutFile '${WIREGUARD_INSTALLER}' -UseBasicParsing$\r$\n"
+    FileWrite $0 "    exit 0$\r$\n"
+    FileWrite $0 "} catch {$\r$\n"
+    FileWrite $0 "    exit 1$\r$\n"
+    FileWrite $0 "}$\r$\n"
+    FileClose $0
     
-    ${If} $DownloadResult == "0"
-      ; Check if file was downloaded
-      ${If} ${FileExists} "${WIREGUARD_INSTALLER}"
-        DetailPrint "Download complete. Installing WireGuard..."
-        
-        ; Run WireGuard installer silently
-        nsExec::ExecToLog '"${WIREGUARD_INSTALLER}" /S'
-        Pop $0
-        
-        ${If} $0 == "0"
-          DetailPrint "WireGuard installed successfully!"
-        ${Else}
-          ; Try with ExecWait as fallback
-          DetailPrint "Trying alternative installation method..."
-          ExecWait '"${WIREGUARD_INSTALLER}" /S' $0
-          ${If} $0 == "0"
-            DetailPrint "WireGuard installed successfully!"
-          ${Else}
-            DetailPrint "Automatic installation returned code: $0"
-            MessageBox MB_OK|MB_ICONINFORMATION "WireGuard could not be installed automatically.$\n$\nPlease install WireGuard manually from:$\nhttps://www.wireguard.com/install/$\n$\nCloakNet VPN will continue to install."
-          ${EndIf}
-        ${EndIf}
-        
-        ; Clean up
-        Delete "${WIREGUARD_INSTALLER}"
+    ; Run the download script
+    DetailPrint "Downloading WireGuard from official source..."
+    ExecWait 'powershell.exe -ExecutionPolicy Bypass -File "${DOWNLOAD_SCRIPT}"' $0
+    
+    ; Clean up download script
+    Delete "${DOWNLOAD_SCRIPT}"
+    
+    ; Check download exit code and verify file exists
+    ${If} $0 != "0"
+      DetailPrint "Download script failed with exit code: $0"
+    ${EndIf}
+    
+    ; Check if file was downloaded successfully
+    ${If} ${FileExists} "${WIREGUARD_INSTALLER}"
+      DetailPrint "Download complete. Installing WireGuard..."
+      
+      ; Run WireGuard installer silently and wait for completion
+      ExecWait '"${WIREGUARD_INSTALLER}" /S' $0
+      
+      ; WireGuard installer runs in background - wait for it to register files and services
+      ; 3 seconds allows the installer to fully complete before we check for wg.exe
+      Sleep 3000
+      
+      ; Verify installation was successful
+      !insertmacro CheckWireGuard
+      ${If} $WireGuardInstalled == "1"
+        DetailPrint "WireGuard installed successfully!"
       ${Else}
-        DetailPrint "Download failed - file not found"
-        MessageBox MB_OK|MB_ICONINFORMATION "Could not download WireGuard.$\n$\nPlease install WireGuard manually from:$\nhttps://www.wireguard.com/install/$\n$\nCloakNet VPN will continue to install."
+        DetailPrint "WireGuard installation may have failed (exit code: $0)"
+        MessageBox MB_OK|MB_ICONINFORMATION "WireGuard installation may not have completed successfully.$\n$\nPlease verify WireGuard is installed from:$\nhttps://www.wireguard.com/install/$\n$\nCloakNet VPN will continue to install."
       ${EndIf}
+      
+      ; Clean up installer
+      Delete "${WIREGUARD_INSTALLER}"
     ${Else}
-      DetailPrint "Download failed with code: $DownloadResult"
-      MessageBox MB_OK|MB_ICONINFORMATION "Could not download WireGuard (network error).$\n$\nPlease install WireGuard manually from:$\nhttps://www.wireguard.com/install/$\n$\nCloakNet VPN will continue to install."
+      DetailPrint "Download failed - WireGuard installer not found"
+      MessageBox MB_OK|MB_ICONINFORMATION "Could not download WireGuard automatically.$\n$\nPlease install WireGuard manually from:$\nhttps://www.wireguard.com/install/$\n$\nCloakNet VPN will continue to install."
     ${EndIf}
     
   ${Else}
