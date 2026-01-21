@@ -168,16 +168,31 @@ async function validateActivationKey(key) {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
+        // Check for HTTP error status codes
+        if (res.statusCode >= 400) {
+          try {
+            const errorResult = JSON.parse(data);
+            resolve(errorResult); // Let the caller handle the error in the response
+          } catch (e) {
+            reject(new Error(`Server returnerede fejl ${res.statusCode}. Tjek at serveren kører korrekt.`));
+          }
+          return;
+        }
+        
         try {
           const result = JSON.parse(data);
           resolve(result);
         } catch (e) {
-          reject(new Error('Invalid response from server'));
+          console.error('Invalid JSON response:', data.substring(0, 200));
+          reject(new Error('Serveren returnerede et ugyldigt svar. Tjek at API\'en er tilgængelig.'));
         }
       });
     });
 
-    req.on('error', (e) => reject(e));
+    req.on('error', (e) => {
+      console.error('Request error:', e.message);
+      reject(new Error(`Kunne ikke forbinde til serveren: ${e.message}`));
+    });
     req.write(postData);
     req.end();
   });
@@ -207,16 +222,31 @@ async function registerClientPeer(key, clientPublicKey) {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
+        // Check for HTTP error status codes
+        if (res.statusCode >= 400) {
+          try {
+            const errorResult = JSON.parse(data);
+            resolve(errorResult); // Let the caller handle the error in the response
+          } catch (e) {
+            reject(new Error(`Server returnerede fejl ${res.statusCode}. Tjek at serveren kører korrekt.`));
+          }
+          return;
+        }
+        
         try {
           const result = JSON.parse(data);
           resolve(result);
         } catch (e) {
-          reject(new Error('Invalid response from server'));
+          console.error('Invalid JSON response:', data.substring(0, 200));
+          reject(new Error('Serveren returnerede et ugyldigt svar ved peer registrering.'));
         }
       });
     });
 
-    req.on('error', (e) => reject(e));
+    req.on('error', (e) => {
+      console.error('Request error:', e.message);
+      reject(new Error(`Kunne ikke forbinde til serveren: ${e.message}`));
+    });
     req.write(postData);
     req.end();
   });
