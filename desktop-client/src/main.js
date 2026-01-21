@@ -33,7 +33,7 @@ let vpnProcess = null;
 let isConnected = false;
 
 // API Configuration
-const API_BASE_URL = process.env.CLOAKNET_API_URL || 'https://cloaknet.de';
+const API_BASE_URL = process.env.CLOAKNET_API_URL || 'https://cloaknet.dk';
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -259,7 +259,35 @@ function generateWireGuardKeys() {
       
       privateKey = privateKey.trim();
       
-      exec(`echo "${privateKey}" | "${wgPath}" pubkey`, (error, publicKey) => {
+      // Write private key to temp file to safely pass to wg pubkey
+      // This avoids shell escaping issues on Windows
+      const tempKeyFile = path.join(app.getPath('temp'), 'cloaknet_privkey.tmp');
+      
+      try {
+        fs.writeFileSync(tempKeyFile, privateKey);
+      } catch (writeError) {
+        reject(new Error('Kunne ikke oprette midlertidig fil til nøglegenerering.'));
+        return;
+      }
+      
+      // Use type (Windows) or cat (Unix) to read the file and pipe to wg pubkey
+      const platform = process.platform;
+      let pubkeyCmd;
+      
+      if (platform === 'win32') {
+        pubkeyCmd = `type "${tempKeyFile}" | "${wgPath}" pubkey`;
+      } else {
+        pubkeyCmd = `cat "${tempKeyFile}" | "${wgPath}" pubkey`;
+      }
+      
+      exec(pubkeyCmd, (error, publicKey) => {
+        // Clean up temp file
+        try {
+          fs.unlinkSync(tempKeyFile);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+        
         if (error) {
           reject(error);
           return;

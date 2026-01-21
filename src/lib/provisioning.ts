@@ -233,7 +233,7 @@ export function getVpnConfig(_userId: string): {
   }
   
   return {
-    server: process.env.VPN_SERVER_HOST || 'vpn.cloaknet.de',
+    server: process.env.VPN_SERVER_HOST || 'vpn.cloaknet.dk',
     port: parseInt(process.env.VPN_SERVER_PORT || '51820', 10),
     protocol: process.env.VPN_PROTOCOL || 'wireguard',
     location: 'Germany',
