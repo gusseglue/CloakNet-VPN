@@ -183,6 +183,45 @@ async function validateActivationKey(key) {
   });
 }
 
+// Register client's public key with the VPN server
+async function registerClientPeer(key, clientPublicKey) {
+  return new Promise((resolve, reject) => {
+    const url = new URL('/api/vpn/register', API_BASE_URL);
+    const isHttps = url.protocol === 'https:';
+    const requestModule = isHttps ? https : http;
+    
+    const postData = JSON.stringify({ key, clientPublicKey });
+    
+    const options = {
+      hostname: url.hostname,
+      port: url.port || (isHttps ? 443 : 80),
+      path: url.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    const req = requestModule.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(data);
+          resolve(result);
+        } catch (e) {
+          reject(new Error('Invalid response from server'));
+        }
+      });
+    });
+
+    req.on('error', (e) => reject(e));
+    req.write(postData);
+    req.end();
+  });
+}
+
 // Validate WireGuard public key format (base64, 44 characters)
 function isValidWireGuardKey(key) {
   if (!key || typeof key !== 'string') return false;
@@ -221,6 +260,32 @@ function generateWireGuardConfig(serverConfig, privateKey, publicKey, userId) {
   
   // Generate consistent client IP from user ID
   const clientIP = generateClientIP(userId);
+  
+  return `[Interface]
+PrivateKey = ${privateKey}
+Address = ${clientIP}/32
+DNS = 1.1.1.1, 8.8.8.8
+
+[Peer]
+PublicKey = ${serverPublicKey}
+AllowedIPs = 0.0.0.0/0
+Endpoint = ${serverConfig.server}:${serverConfig.port}
+PersistentKeepalive = 25
+`;
+}
+
+// Generate WireGuard configuration with specific IP address (used with server-assigned IPs)
+function generateWireGuardConfigWithIP(serverConfig, privateKey, clientIP) {
+  // Use server public key from API response
+  const serverPublicKey = serverConfig.serverPublicKey || process.env.WG_SERVER_PUBLIC_KEY || '';
+  
+  if (!serverPublicKey) {
+    throw new Error('VPN-serveren er ikke konfigureret endnu. Kontakt support for hjælp.');
+  }
+  
+  if (!isValidWireGuardKey(serverPublicKey)) {
+    throw new Error('VPN-serveren returnerede en ugyldig konfiguration. Kontakt support for hjælp.');
+  }
   
   return `[Interface]
 PrivateKey = ${privateKey}
@@ -398,11 +463,19 @@ async function connectVPN(activationKey) {
       store.set('wireguardKeys', keys);
     }
     
-    // Get user ID for consistent IP assignment (use key hash as fallback)
-    const userId = validation.userId || activationKey;
+    // Register the client's public key with the server
+    // This is required for the WireGuard server to accept our connection
+    const registration = await registerClientPeer(activationKey, keys.publicKey);
     
-    // Generate config
-    const config = generateWireGuardConfig(validation.config, keys.privateKey, keys.publicKey, userId);
+    if (!registration.success) {
+      throw new Error(registration.error || 'Kunne ikke registrere VPN-forbindelse. Prøv igen.');
+    }
+    
+    // Use the assigned IP from server (or fallback to generated IP)
+    const clientIP = registration.clientIP || generateClientIP(validation.userId || activationKey);
+    
+    // Generate config with the server-assigned IP
+    const config = generateWireGuardConfigWithIP(validation.config, keys.privateKey, clientIP);
     
     // Write config to temp file
     const configPath = path.join(app.getPath('temp'), 'cloaknet.conf');

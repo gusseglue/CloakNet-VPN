@@ -240,3 +240,79 @@ export function getVpnConfig(_userId: string): {
     serverPublicKey: serverPublicKey || '',
   };
 }
+
+/**
+ * Generate a consistent client IP based on user ID
+ * Uses hash to ensure same user always gets same IP
+ */
+function generateClientIPFromUserId(userId: string): string {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    const char = userId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  // Use last octet between 2-254 (1 is server, 255 is broadcast)
+  const lastOctet = (Math.abs(hash) % 253) + 2;
+  return `10.0.0.${lastOctet}`;
+}
+
+/**
+ * Register a client peer on the WireGuard server
+ * Called when a client connects with their public key
+ */
+export async function registerClientPeer(
+  userId: string,
+  clientPublicKey: string
+): Promise<{
+  success: boolean;
+  clientIP?: string;
+  error?: string;
+}> {
+  try {
+    // Validate public key format - WireGuard keys are exactly 44 characters (32 bytes base64 with padding)
+    if (!clientPublicKey || clientPublicKey.length !== 44) {
+      return { success: false, error: 'Invalid public key format' };
+    }
+    
+    const base64Regex = /^[A-Za-z0-9+/]{43}=$/;
+    if (!base64Regex.test(clientPublicKey)) {
+      return { success: false, error: 'Invalid public key format' };
+    }
+
+    // Generate consistent client IP for this user
+    const clientIP = generateClientIPFromUserId(userId);
+    
+    // Store the client's public key in the database
+    await prisma.activationKey.update({
+      where: { userId },
+      data: { 
+        clientPublicKey,
+        clientIP,
+        lastConnected: new Date(),
+      },
+    });
+
+    // In production, this would add the peer to WireGuard using:
+    // exec(`wg set wg0 peer ${clientPublicKey} allowed-ips ${clientIP}/32`)
+    //
+    // For now, we log the peer info so it can be manually added to the server
+    console.log('='.repeat(60));
+    console.log('NEW WIREGUARD PEER - Add this to your WireGuard server:');
+    console.log('='.repeat(60));
+    console.log(`[Peer]`);
+    console.log(`PublicKey = ${clientPublicKey}`);
+    console.log(`AllowedIPs = ${clientIP}/32`);
+    console.log('='.repeat(60));
+    console.log(`User ID: ${userId}`);
+    console.log('='.repeat(60));
+
+    return {
+      success: true,
+      clientIP,
+    };
+  } catch (error) {
+    console.error('Error registering client peer:', error);
+    return { success: false, error: 'Failed to register peer' };
+  }
+}
