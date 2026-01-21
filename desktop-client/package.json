@@ -46,7 +46,8 @@
       "shortcutName": "CloakNet VPN",
       "include": "installer/installer.nsh",
       "warningsAsErrors": false,
-      "differentialPackage": true
+      "differentialPackage": true,
+      "allowElevation": true
     },
     "mac": {
       "target": "dmg",

@@ -1,43 +1,41 @@
-# WireGuard Binaries
+# WireGuard Integration
 
-This directory contains WireGuard binaries that are bundled with the CloakNet VPN installer.
+This directory contains configuration for WireGuard integration with CloakNet VPN.
 
-## Required files for Windows builds:
+## Automatic Installation
 
-### For Windows Installer (MSI for silent install)
-- `wireguard-amd64.msi` - WireGuard installer for 64-bit Windows
+When you install CloakNet VPN on Windows, WireGuard will be **automatically downloaded and installed** if it's not already present on your system.
 
-Download from: https://download.wireguard.com/windows-client/
+The installer:
+1. Checks if WireGuard is already installed
+2. If not found, downloads the official WireGuard installer from https://download.wireguard.com/
+3. Installs WireGuard silently in the background
+4. Continues with CloakNet VPN installation
 
-### For runtime (bundled with app)
-- `wg.exe` - WireGuard CLI tool
-- `wireguard.exe` - WireGuard tunnel service
+**No manual steps required!**
 
-These can be extracted from the MSI installer or downloaded separately.
+## How It Works
 
-## How to obtain WireGuard binaries
+### Windows
+- The NSIS installer downloads `wireguard-installer.exe` from the official WireGuard website
+- Installs silently using `/S` flag
+- If automatic installation fails, user is prompted to install manually
 
-### Option 1: Download MSI directly
-1. Go to https://download.wireguard.com/windows-client/
-2. Download the latest `wireguard-amd64-X.X.X.msi`
-3. Rename it to `wireguard-amd64.msi` and place in this directory
+### macOS
+- WireGuard tools should be installed via Homebrew: `brew install wireguard-tools`
+- The app will guide users if WireGuard is not found
 
-### Option 2: Extract from official installer
-1. Install WireGuard from https://www.wireguard.com/install/
-2. Copy `wg.exe` and `wireguard.exe` from `C:\Program Files\WireGuard\`
+### Linux
+- WireGuard tools should be installed via package manager:
+  - Debian/Ubuntu: `sudo apt install wireguard-tools`
+  - Fedora: `sudo dnf install wireguard-tools`
+- The app will guide users if WireGuard is not found
 
-## Build Process
+## For Developers
 
-During the Windows build, the installer will:
-1. Check if WireGuard is already installed on the user's system
-2. If not installed, automatically install it using the bundled MSI
-3. This ensures a seamless installation experience for users
+The installer script is located at `installer/installer.nsh` and uses:
+- NSIS INetC plugin for downloading files
+- Silent installation of the official WireGuard installer
 
-## macOS and Linux
-
-On macOS and Linux, WireGuard tools are installed automatically via the app:
-- The app will prompt for administrator privileges to install WireGuard
-- Uses system package managers (brew on macOS, apt/dnf on Linux)
-
-Users no longer need to manually install WireGuard - the installer handles everything.
+No WireGuard binaries need to be bundled with the build - everything is downloaded at install time.
 

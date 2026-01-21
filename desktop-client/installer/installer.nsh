@@ -5,26 +5,45 @@
 !include "LogicLib.nsh"
 !include "WinVer.nsh"
 !include "x64.nsh"
+!include "FileFunc.nsh"
 
 ; Variables
 Var WireGuardInstalled
-Var WireGuardMsi
+Var WireGuardExe
+Var DownloadResult
+
+; WireGuard download URL - official download from wireguard.com
+!define WIREGUARD_URL "https://download.wireguard.com/windows-client/wireguard-installer.exe"
+!define WIREGUARD_INSTALLER "$TEMP\wireguard-installer.exe"
 
 ; Macro to check if WireGuard is installed
 !macro CheckWireGuard
-  ClearErrors
-  ReadRegStr $0 HKLM "SOFTWARE\WireGuard" ""
-  ${If} ${Errors}
-    ; Try 64-bit registry
-    SetRegView 64
-    ClearErrors
-    ReadRegStr $0 HKLM "SOFTWARE\WireGuard" ""
-    SetRegView 32
-  ${EndIf}
-  ${If} ${Errors}
-    StrCpy $WireGuardInstalled "0"
-  ${Else}
+  ; Check if wg.exe exists in Program Files
+  StrCpy $WireGuardInstalled "0"
+  
+  ; Check 64-bit location
+  ${If} ${FileExists} "$PROGRAMFILES64\WireGuard\wg.exe"
     StrCpy $WireGuardInstalled "1"
+    StrCpy $WireGuardExe "$PROGRAMFILES64\WireGuard\wg.exe"
+  ${EndIf}
+  
+  ; Check 32-bit location
+  ${If} $WireGuardInstalled == "0"
+    ${If} ${FileExists} "$PROGRAMFILES\WireGuard\wg.exe"
+      StrCpy $WireGuardInstalled "1"
+      StrCpy $WireGuardExe "$PROGRAMFILES\WireGuard\wg.exe"
+    ${EndIf}
+  ${EndIf}
+  
+  ; Also check registry as backup
+  ${If} $WireGuardInstalled == "0"
+    ClearErrors
+    SetRegView 64
+    ReadRegStr $0 HKLM "SOFTWARE\WireGuard" ""
+    ${IfNot} ${Errors}
+      StrCpy $WireGuardInstalled "1"
+    ${EndIf}
+    SetRegView 32
   ${EndIf}
 !macroend
 
@@ -34,53 +53,50 @@ Var WireGuardMsi
   !insertmacro CheckWireGuard
   
   ${If} $WireGuardInstalled == "0"
-    ; WireGuard not found, install it
-    DetailPrint "Installing WireGuard..."
+    ; WireGuard not found, download and install it
+    DetailPrint "WireGuard is not installed. Downloading..."
     
-    ; Detect architecture and select appropriate MSI
-    ${If} ${RunningX64}
-      StrCpy $WireGuardMsi "wireguard-amd64.msi"
+    ; Use PowerShell to download WireGuard (works on all modern Windows)
+    DetailPrint "Downloading WireGuard from official source..."
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri \"${WIREGUARD_URL}\" -OutFile \"${WIREGUARD_INSTALLER}\" -UseBasicParsing; exit 0 } catch { exit 1 }"'
+    Pop $DownloadResult
+    
+    ${If} $DownloadResult == "0"
+      ; Check if file was downloaded
+      ${If} ${FileExists} "${WIREGUARD_INSTALLER}"
+        DetailPrint "Download complete. Installing WireGuard..."
+        
+        ; Run WireGuard installer silently
+        nsExec::ExecToLog '"${WIREGUARD_INSTALLER}" /S'
+        Pop $0
+        
+        ${If} $0 == "0"
+          DetailPrint "WireGuard installed successfully!"
+        ${Else}
+          ; Try with ExecWait as fallback
+          DetailPrint "Trying alternative installation method..."
+          ExecWait '"${WIREGUARD_INSTALLER}" /S' $0
+          ${If} $0 == "0"
+            DetailPrint "WireGuard installed successfully!"
+          ${Else}
+            DetailPrint "Automatic installation returned code: $0"
+            MessageBox MB_OK|MB_ICONINFORMATION "WireGuard could not be installed automatically.$\n$\nPlease install WireGuard manually from:$\nhttps://www.wireguard.com/install/$\n$\nCloakNet VPN will continue to install."
+          ${EndIf}
+        ${EndIf}
+        
+        ; Clean up
+        Delete "${WIREGUARD_INSTALLER}"
+      ${Else}
+        DetailPrint "Download failed - file not found"
+        MessageBox MB_OK|MB_ICONINFORMATION "Could not download WireGuard.$\n$\nPlease install WireGuard manually from:$\nhttps://www.wireguard.com/install/$\n$\nCloakNet VPN will continue to install."
+      ${EndIf}
     ${Else}
-      StrCpy $WireGuardMsi "wireguard-x86.msi"
+      DetailPrint "Download failed with code: $DownloadResult"
+      MessageBox MB_OK|MB_ICONINFORMATION "Could not download WireGuard (network error).$\n$\nPlease install WireGuard manually from:$\nhttps://www.wireguard.com/install/$\n$\nCloakNet VPN will continue to install."
     ${EndIf}
     
-    ; Extract WireGuard MSI to temp
-    SetOutPath "$TEMP\CloakNetInstall"
-    
-    ; Try to extract the architecture-specific MSI, fall back to amd64 if x86 not found
-    ClearErrors
-    File /nonfatal /oname=wireguard-installer.msi "${BUILD_RESOURCES_DIR}\wireguard\$WireGuardMsi"
-    ${If} ${Errors}
-      ; Fall back to amd64 if specific MSI not found
-      File /nonfatal /oname=wireguard-installer.msi "${BUILD_RESOURCES_DIR}\wireguard\wireguard-amd64.msi"
-    ${EndIf}
-    
-    ; Install WireGuard silently
-    DetailPrint "Running WireGuard installer..."
-    nsExec::ExecToLog 'msiexec /i "$TEMP\CloakNetInstall\wireguard-installer.msi" /qn /norestart'
-    Pop $0
-    
-    ${If} $0 != "0"
-      DetailPrint "Note: WireGuard installation returned code $0"
-      ; Don't fail - user might have it installed elsewhere
-    ${EndIf}
-    
-    ; Clean up with error handling
-    ClearErrors
-    Delete "$TEMP\CloakNetInstall\wireguard-installer.msi"
-    ${If} ${Errors}
-      DetailPrint "Note: Could not delete temporary installer file"
-    ${EndIf}
-    
-    ClearErrors
-    RMDir "$TEMP\CloakNetInstall"
-    ${If} ${Errors}
-      DetailPrint "Note: Could not remove temporary directory"
-    ${EndIf}
-    
-    DetailPrint "WireGuard installation complete"
   ${Else}
-    DetailPrint "WireGuard is already installed"
+    DetailPrint "WireGuard is already installed at: $WireGuardExe"
   ${EndIf}
 !macroend
 
