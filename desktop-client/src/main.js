@@ -33,7 +33,7 @@ let vpnProcess = null;
 let isConnected = false;
 
 // API Configuration
-const API_BASE_URL = process.env.CLOAKNET_API_URL || 'https://cloaknet.de';
+const API_BASE_URL = process.env.CLOAKNET_API_URL || 'https://cloaknet.dk';
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -168,16 +168,85 @@ async function validateActivationKey(key) {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
+        // Check for HTTP error status codes
+        if (res.statusCode >= 400) {
+          try {
+            const errorResult = JSON.parse(data);
+            resolve(errorResult); // Let the caller handle the error in the response
+          } catch (e) {
+            reject(new Error(`Server returnerede fejl ${res.statusCode}. Tjek at serveren kører korrekt.`));
+          }
+          return;
+        }
+        
         try {
           const result = JSON.parse(data);
           resolve(result);
         } catch (e) {
-          reject(new Error('Invalid response from server'));
+          console.error('Invalid JSON response:', data.substring(0, 200));
+          reject(new Error('Serveren returnerede et ugyldigt svar. Tjek at API\'en er tilgængelig.'));
         }
       });
     });
 
-    req.on('error', (e) => reject(e));
+    req.on('error', (e) => {
+      console.error('Request error:', e.message);
+      reject(new Error(`Kunne ikke forbinde til serveren: ${e.message}`));
+    });
+    req.write(postData);
+    req.end();
+  });
+}
+
+// Register client's public key with the VPN server
+async function registerClientPeer(key, clientPublicKey) {
+  return new Promise((resolve, reject) => {
+    const url = new URL('/api/vpn/register', API_BASE_URL);
+    const isHttps = url.protocol === 'https:';
+    const requestModule = isHttps ? https : http;
+    
+    const postData = JSON.stringify({ key, clientPublicKey });
+    
+    const options = {
+      hostname: url.hostname,
+      port: url.port || (isHttps ? 443 : 80),
+      path: url.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    const req = requestModule.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        // Check for HTTP error status codes
+        if (res.statusCode >= 400) {
+          try {
+            const errorResult = JSON.parse(data);
+            resolve(errorResult); // Let the caller handle the error in the response
+          } catch (e) {
+            reject(new Error(`Server returnerede fejl ${res.statusCode}. Tjek at serveren kører korrekt.`));
+          }
+          return;
+        }
+        
+        try {
+          const result = JSON.parse(data);
+          resolve(result);
+        } catch (e) {
+          console.error('Invalid JSON response:', data.substring(0, 200));
+          reject(new Error('Serveren returnerede et ugyldigt svar ved peer registrering.'));
+        }
+      });
+    });
+
+    req.on('error', (e) => {
+      console.error('Request error:', e.message);
+      reject(new Error(`Kunne ikke forbinde til serveren: ${e.message}`));
+    });
     req.write(postData);
     req.end();
   });
@@ -212,15 +281,41 @@ function generateWireGuardConfig(serverConfig, privateKey, publicKey, userId) {
   const serverPublicKey = serverConfig.serverPublicKey || process.env.WG_SERVER_PUBLIC_KEY || '';
   
   if (!serverPublicKey) {
-    throw new Error('Server public key not configured');
+    throw new Error('VPN-serveren er ikke konfigureret endnu. Kontakt support for hjælp.');
   }
   
   if (!isValidWireGuardKey(serverPublicKey)) {
-    throw new Error('Invalid server public key format');
+    throw new Error('VPN-serveren returnerede en ugyldig konfiguration. Kontakt support for hjælp.');
   }
   
   // Generate consistent client IP from user ID
   const clientIP = generateClientIP(userId);
+  
+  return `[Interface]
+PrivateKey = ${privateKey}
+Address = ${clientIP}/32
+DNS = 1.1.1.1, 8.8.8.8
+
+[Peer]
+PublicKey = ${serverPublicKey}
+AllowedIPs = 0.0.0.0/0
+Endpoint = ${serverConfig.server}:${serverConfig.port}
+PersistentKeepalive = 25
+`;
+}
+
+// Generate WireGuard configuration with specific IP address (used with server-assigned IPs)
+function generateWireGuardConfigWithIP(serverConfig, privateKey, clientIP) {
+  // Use server public key from API response
+  const serverPublicKey = serverConfig.serverPublicKey || process.env.WG_SERVER_PUBLIC_KEY || '';
+  
+  if (!serverPublicKey) {
+    throw new Error('VPN-serveren er ikke konfigureret endnu. Kontakt support for hjælp.');
+  }
+  
+  if (!isValidWireGuardKey(serverPublicKey)) {
+    throw new Error('VPN-serveren returnerede en ugyldig konfiguration. Kontakt support for hjælp.');
+  }
   
   return `[Interface]
 PrivateKey = ${privateKey}
@@ -240,15 +335,54 @@ function generateWireGuardKeys() {
   return new Promise((resolve, reject) => {
     const wgPath = getWireGuardPath();
     
+    // Check if WireGuard exists before trying to run it
+    if (!fs.existsSync(wgPath)) {
+      reject(new Error('WireGuard er ikke installeret. Installer venligst WireGuard fra https://www.wireguard.com/install/ og prøv igen.'));
+      return;
+    }
+    
     exec(`"${wgPath}" genkey`, (error, privateKey) => {
       if (error) {
-        reject(error);
+        // Provide a more helpful error message
+        if (error.code === 'ENOENT' || (error.message && (error.message.includes('ENOENT') || error.message.includes('not recognized')))) {
+          reject(new Error('WireGuard blev ikke fundet. Installer venligst WireGuard fra https://www.wireguard.com/install/ og prøv igen.'));
+        } else {
+          reject(error);
+        }
         return;
       }
       
       privateKey = privateKey.trim();
       
-      exec(`echo "${privateKey}" | "${wgPath}" pubkey`, (error, publicKey) => {
+      // Write private key to temp file to safely pass to wg pubkey
+      // This avoids shell escaping issues on Windows
+      const tempKeyFile = path.join(app.getPath('temp'), 'cloaknet_privkey.tmp');
+      
+      try {
+        fs.writeFileSync(tempKeyFile, privateKey);
+      } catch (writeError) {
+        reject(new Error('Kunne ikke oprette midlertidig fil til nøglegenerering.'));
+        return;
+      }
+      
+      // Use type (Windows) or cat (Unix) to read the file and pipe to wg pubkey
+      const platform = process.platform;
+      let pubkeyCmd;
+      
+      if (platform === 'win32') {
+        pubkeyCmd = `type "${tempKeyFile}" | "${wgPath}" pubkey`;
+      } else {
+        pubkeyCmd = `cat "${tempKeyFile}" | "${wgPath}" pubkey`;
+      }
+      
+      exec(pubkeyCmd, (error, publicKey) => {
+        // Clean up temp file
+        try {
+          fs.unlinkSync(tempKeyFile);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+        
         if (error) {
           reject(error);
           return;
@@ -267,8 +401,34 @@ function getWireGuardPath() {
   const platform = process.platform;
   
   if (platform === 'win32') {
-    return path.join(process.resourcesPath, 'wireguard', 'wg.exe');
+    // Check standard Windows installation paths for WireGuard
+    const possiblePaths = [
+      'C:\\Program Files\\WireGuard\\wg.exe',
+      'C:\\Program Files (x86)\\WireGuard\\wg.exe',
+      path.join(process.resourcesPath, 'wireguard', 'wg.exe')
+    ];
+    
+    for (const wgPath of possiblePaths) {
+      if (fs.existsSync(wgPath)) {
+        return wgPath;
+      }
+    }
+    
+    // Return default path even if not found (will error when executed)
+    return possiblePaths[0];
   } else if (platform === 'darwin') {
+    // Check common macOS paths
+    const possiblePaths = [
+      '/usr/local/bin/wg',
+      '/opt/homebrew/bin/wg',
+      '/usr/bin/wg'
+    ];
+    
+    for (const wgPath of possiblePaths) {
+      if (fs.existsSync(wgPath)) {
+        return wgPath;
+      }
+    }
     return '/usr/local/bin/wg';
   } else {
     return '/usr/bin/wg';
@@ -279,8 +439,34 @@ function getWireGuardQuickPath() {
   const platform = process.platform;
   
   if (platform === 'win32') {
-    return path.join(process.resourcesPath, 'wireguard', 'wireguard.exe');
+    // Check standard Windows installation paths for WireGuard
+    const possiblePaths = [
+      'C:\\Program Files\\WireGuard\\wireguard.exe',
+      'C:\\Program Files (x86)\\WireGuard\\wireguard.exe',
+      path.join(process.resourcesPath, 'wireguard', 'wireguard.exe')
+    ];
+    
+    for (const wgPath of possiblePaths) {
+      if (fs.existsSync(wgPath)) {
+        return wgPath;
+      }
+    }
+    
+    // Return default path even if not found (will error when executed)
+    return possiblePaths[0];
   } else if (platform === 'darwin') {
+    // Check common macOS paths
+    const possiblePaths = [
+      '/usr/local/bin/wg-quick',
+      '/opt/homebrew/bin/wg-quick',
+      '/usr/bin/wg-quick'
+    ];
+    
+    for (const wgPath of possiblePaths) {
+      if (fs.existsSync(wgPath)) {
+        return wgPath;
+      }
+    }
     return '/usr/local/bin/wg-quick';
   } else {
     return '/usr/bin/wg-quick';
@@ -307,11 +493,19 @@ async function connectVPN(activationKey) {
       store.set('wireguardKeys', keys);
     }
     
-    // Get user ID for consistent IP assignment (use key hash as fallback)
-    const userId = validation.userId || activationKey;
+    // Register the client's public key with the server
+    // This is required for the WireGuard server to accept our connection
+    const registration = await registerClientPeer(activationKey, keys.publicKey);
     
-    // Generate config
-    const config = generateWireGuardConfig(validation.config, keys.privateKey, keys.publicKey, userId);
+    if (!registration.success) {
+      throw new Error(registration.error || 'Kunne ikke registrere VPN-forbindelse. Prøv igen.');
+    }
+    
+    // Use the assigned IP from server (or fallback to generated IP)
+    const clientIP = registration.clientIP || generateClientIP(validation.userId || activationKey);
+    
+    // Generate config with the server-assigned IP
+    const config = generateWireGuardConfigWithIP(validation.config, keys.privateKey, clientIP);
     
     // Write config to temp file
     const configPath = path.join(app.getPath('temp'), 'cloaknet.conf');

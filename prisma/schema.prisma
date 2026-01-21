@@ -36,13 +36,16 @@ model Subscription {
 }
 
 model ActivationKey {
-  id        String    @id @default(cuid())
-  userId    String    @unique
-  key       String?   // Can be null in Phase 1
-  issuedAt  DateTime?
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  key             String?   // Can be null in Phase 1
+  issuedAt        DateTime?
+  revokedAt       DateTime?
+  clientPublicKey String?   // Client's WireGuard public key
+  clientIP        String?   // Assigned VPN IP address
+  lastConnected   DateTime? // Last time client connected
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

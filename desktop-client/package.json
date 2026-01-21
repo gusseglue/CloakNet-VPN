@@ -23,6 +23,7 @@
   "build": {
     "appId": "com.cloaknet.vpn",
     "productName": "CloakNet VPN",
+    "copyright": "Copyright © 2024 CloakNet",
     "directories": {
       "output": "dist"
     },
@@ -32,16 +33,51 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.ico"
+      "icon": "assets/icon.ico",
+      "publisherName": "CloakNet",
+      "legalTrademarks": "CloakNet VPN"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "license": "assets/license.txt",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CloakNet VPN",
+      "include": "installer/installer.nsh",
+      "warningsAsErrors": false,
+      "differentialPackage": true,
+      "allowElevation": true
     },
     "mac": {
       "target": "dmg",
       "icon": "assets/icon.icns",
       "category": "public.app-category.utilities"
     },
+    "dmg": {
+      "title": "CloakNet VPN",
+      "icon": "assets/icon.icns",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 540,
+        "height": 400
+      }
+    },
     "linux": {
       "target": "AppImage",
-      "icon": "assets/icon.png"
+      "icon": "assets/icon.png",
+      "category": "Network"
     },
     "extraResources": [
       {
